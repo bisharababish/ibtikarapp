@@ -1,7 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "expo-router";
 import { LogOut, Sparkles } from "lucide-react-native";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,9 @@ import {
   Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import IbtikarLogo from "@/components/IbtikarLogo";
+import { runPreview } from "@/utils/api";
+import { usePosts } from "@/hooks/usePosts";
 
 export default function MainScreen() {
   const { user, isActive, toggleActive, logout } = useAuth();
@@ -69,9 +72,29 @@ export default function MainScreen() {
     }
   }, [user, router]);
 
-  const handleToggle = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { items, loading: postsLoading, error: postsError, refresh } = usePosts();
+
+  const handleToggle = async () => {
     console.log("Toggle activation:", !isActive);
+    setError(null);
     toggleActive();
+    if (!isActive) {
+      // When turning ON, trigger the backend preview pipeline
+      try {
+        setLoading(true);
+        const res = await runPreview();
+        console.log("Preview result:", res);
+      } catch (e: any) {
+        console.error(e);
+        setError(e?.message || "Failed to start analysis");
+      } finally {
+        setLoading(false);
+        // Refresh analyzed posts after running preview
+        void refresh();
+      }
+    }
   };
 
   const handleLogout = () => {
@@ -116,6 +139,14 @@ export default function MainScreen() {
           <Text style={styles.userName}>Ibtikar User</Text>
           <Text style={styles.userHandle}>@ibtikar_user</Text>
           <Text style={styles.userEmail}>user@ibtikar.sa</Text>
+
+          {/* Official Ibtikar Logo */}
+          <View style={styles.logoContainer}>
+            <IbtikarLogo
+              size={100}
+              style={styles.logoWrapper}
+            />
+          </View>
         </View>
 
         <View style={styles.aiSection}>
@@ -139,7 +170,11 @@ export default function MainScreen() {
             <View style={styles.aiInfo}>
               <Text style={styles.aiTitle}>AI Assistant</Text>
               <Text style={[styles.aiStatus, isActive && styles.aiStatusActive]}>
-                {isActive ? "Currently Active" : "Currently Inactive"}
+                {loading
+                  ? "Running analysis..."
+                  : isActive
+                  ? "Currently Active"
+                  : "Currently Inactive"}
               </Text>
             </View>
           </View>
@@ -153,6 +188,53 @@ export default function MainScreen() {
               thumbColor={isActive ? "#a78bfa" : "#666666"}
               ios_backgroundColor="#333333"
             />
+          </View>
+          {!!error && (
+            <Text style={{ color: "#ef4444", marginTop: 12 }} numberOfLines={2}>
+              {error}
+            </Text>
+          )}
+          {!!postsError && (
+            <Text style={{ color: "#ef4444", marginTop: 8 }} numberOfLines={2}>
+              {postsError}
+            </Text>
+          )}
+          <View style={{ marginTop: 20 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "600" }}>
+                Recent analyzed posts
+              </Text>
+              <TouchableOpacity onPress={() => refresh()} activeOpacity={0.8}>
+                <Text style={{ color: "#a78bfa" }}>{postsLoading ? "Refreshing..." : "Refresh"}</Text>
+              </TouchableOpacity>
+            </View>
+            {items.length === 0 ? (
+              <Text style={{ color: "#888888" }}>
+                {postsLoading ? "Loading..." : "No posts yet. Toggle Activate to analyze your feed."}
+              </Text>
+            ) : (
+              <View style={{ gap: 10 }}>
+                {items.map((p) => (
+                  <View
+                    key={`${p.id}-${p.post_id}`}
+                    style={{
+                      padding: 12,
+                      borderRadius: 12,
+                      backgroundColor: "#111111",
+                      borderWidth: 1,
+                      borderColor: "#2a2a2a",
+                    }}
+                  >
+                    <Text style={{ color: "#a1a1aa", marginBottom: 6 }} numberOfLines={1}>
+                      @{p.author_id} • {p.lang?.toUpperCase?.() || "—"} • {p.label.toUpperCase()}
+                    </Text>
+                    <Text style={{ color: "#ffffff" }} numberOfLines={3}>
+                      {p.text}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -188,6 +270,14 @@ const styles = StyleSheet.create({
   profileSection: {
     alignItems: "center",
     marginBottom: 32,
+  },
+  logoContainer: {
+    marginTop: 20,
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  logoWrapper: {
+    // No effects as per official guidelines
   },
   avatarContainer: {
     position: "relative",

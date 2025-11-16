@@ -7,12 +7,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Dimensions,
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import IbtikarLogo from "@/components/IbtikarLogo";
 
 const { width } = Dimensions.get("window");
 
@@ -47,17 +47,10 @@ export default function LoginScreen() {
         ]}
       >
         <View style={styles.logoContainer}>
-          <View style={styles.glowOuter}>
-            <View style={styles.glowMiddle}>
-              <View style={styles.logoCircle}>
-                <Image
-                  source={require("@/assets/images/ibtikar-logo.png")}
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
-              </View>
-            </View>
-          </View>
+          <IbtikarLogo
+            size={Math.min(width * 0.55, 240)}
+            style={styles.logoWrapper}
+          />
         </View>
 
         <View style={styles.bottomSection}>
@@ -96,52 +89,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "100%",
   },
-  glowOuter: {
-    width: Math.min(width * 0.75, 340),
-    height: Math.min(width * 0.75, 340),
-    borderRadius: Math.min(width * 0.375, 170),
-    backgroundColor: "rgba(29, 161, 242, 0.05)",
-    justifyContent: "center",
-    alignItems: "center",
-    ...Platform.select({
-      web: {
-        boxShadow: "0 0 80px rgba(29, 161, 242, 0.3)",
-      },
-      default: {
-        shadowColor: "#1DA1F2",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 40,
-        elevation: 20,
-      },
-    }),
-  },
-  glowMiddle: {
-    width: Math.min(width * 0.68, 310),
-    height: Math.min(width * 0.68, 310),
-    borderRadius: Math.min(width * 0.34, 155),
-    backgroundColor: "rgba(29, 161, 242, 0.08)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logoCircle: {
-    width: Math.min(width * 0.6, 280),
-    height: Math.min(width * 0.6, 280),
-    borderRadius: Math.min(width * 0.3, 140),
-    backgroundColor: "#0f0f0f",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: "#1DA1F2",
-    ...Platform.select({
-      web: {
-        boxShadow: "inset 0 0 30px rgba(29, 161, 242, 0.2)",
-      },
-    }),
-  },
-  logo: {
-    width: "85%",
-    height: "85%",
+  logoWrapper: {
+    // No effects as per official guidelines
   },
   bottomSection: {
     width: "100%",
