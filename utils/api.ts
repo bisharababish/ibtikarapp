@@ -39,15 +39,29 @@ export async function runPreview(userId: number = 1): Promise<{ inserted?: numbe
   // Backend expects POST with user_id query parameter
   // Ensure userId is a valid number
   const validUserId = Number(userId) || 1;
-  const params = new URLSearchParams({ user_id: String(validUserId) });
-  const url = `/v1/analysis/preview?${params.toString()}`;
-  console.log("🔍 Calling preview API:", `${BASE_URL}${url}`, "with user_id:", validUserId);
+  
+  // Build URL with query parameter - FastAPI expects query params even for POST
+  const urlWithParams = `${BASE_URL}/v1/analysis/preview?user_id=${validUserId}`;
+  console.log("🔍 Calling preview API:", urlWithParams, "with user_id:", validUserId);
+  
   try {
-    const result = await request<{ inserted?: number; skipped?: number }>(url, {
+    // Use fetch directly to ensure query params are sent correctly
+    const res = await fetch(urlWithParams, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error("❌ Preview API error response:", res.status, text);
+      throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
+    }
+    
+    const result = await res.json();
     console.log("✅ Preview API success:", result);
-    return result;
+    return result as { inserted?: number; skipped?: number };
   } catch (error) {
     console.error("❌ Preview API error:", error);
     throw error;
