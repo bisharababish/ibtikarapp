@@ -84,10 +84,12 @@ export default function MainScreen() {
       // When turning ON, trigger the backend preview pipeline
       try {
         setLoading(true);
-        const res = await runPreview(user?.id || 1);
+        const userId = user?.id || 1;
+        console.log("Running preview with user_id:", userId, "User object:", user);
+        const res = await runPreview(userId);
         console.log("Preview result:", res);
       } catch (e: any) {
-        console.error(e);
+        console.error("Preview error:", e);
         setError(e?.message || "Failed to start analysis");
       } finally {
         setLoading(false);

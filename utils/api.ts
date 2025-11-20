@@ -38,7 +38,9 @@ export function getOAuthStartUrl(userId: string) {
 export async function runPreview(userId: number = 1): Promise<{ inserted?: number; skipped?: number }> {
   // Backend expects POST with user_id query parameter
   const params = new URLSearchParams({ user_id: String(userId) });
-  return await request<{ inserted?: number; skipped?: number }>(`/v1/analysis/preview?${params.toString()}`, {
+  const url = `/v1/analysis/preview?${params.toString()}`;
+  console.log("Calling preview API:", url, "with user_id:", userId);
+  return await request<{ inserted?: number; skipped?: number }>(url, {
     method: "POST",
   });
 }
