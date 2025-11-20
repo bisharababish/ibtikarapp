@@ -40,7 +40,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         };
     }, []);
 
-    const handleOAuthCallback = useCallback((url: string) => {
+    const handleOAuthCallback = useCallback(async (url: string) => {
         try {
             console.log("🔗 Received deep link:", url);
             const parsed = LinkingExpo.parse(url);
