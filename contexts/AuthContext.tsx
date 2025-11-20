@@ -3,14 +3,17 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { Linking } from "react-native";
 import * as LinkingExpo from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
-import { getOAuthStartUrl } from "@/utils/api";
+import { getOAuthStartUrl, getTwitterUser } from "@/utils/api";
 
 // Make sure WebBrowser closes properly after OAuth
 WebBrowser.maybeCompleteAuthSession();
 
 interface User {
+    id: number;
     name: string;
     email: string;
+    username?: string;
+    profileImageUrl?: string;
 }
 
 export const [AuthProvider, useAuth] = createContextHook(() => {
@@ -59,13 +62,30 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 console.log("✅ OAuth callback detected:", { success, userId, error });
                 
                 if (success && userId) {
-                    // OAuth successful - fetch user info or set user state
-                    setUser({
-                        name: `User ${userId}`,
-                        email: `user${userId}@example.com`,
-                    });
-                    setIsActive(true);
-                    console.log("🎉 Login successful for user:", userId);
+                    // OAuth successful - fetch real Twitter user info
+                    const userIdNum = parseInt(userId, 10);
+                    try {
+                        const twitterUser = await getTwitterUser(userIdNum);
+                        const userData = twitterUser.data;
+                        setUser({
+                            id: userIdNum,
+                            name: userData.name,
+                            username: userData.username,
+                            email: `${userData.username}@twitter.com`,
+                            profileImageUrl: userData.profile_image_url,
+                        });
+                        setIsActive(true);
+                        console.log("🎉 Login successful for user:", userId, userData.name);
+                    } catch (err) {
+                        console.error("❌ Failed to fetch Twitter user:", err);
+                        // Fallback to basic user info
+                        setUser({
+                            id: userIdNum,
+                            name: `User ${userId}`,
+                            email: `user${userId}@example.com`,
+                        });
+                        setIsActive(true);
+                    }
                 } else if (error) {
                     console.error("❌ OAuth error:", error);
                     // Handle error - show error message to user
@@ -79,7 +99,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const loginWithTwitter = useCallback(async () => {
         try {
             // Use expo-web-browser for better OAuth handling
-            const url = getOAuthStartUrl("1"); // Replace with real user id when available
+        const url = getOAuthStartUrl("1"); // Replace with real user id when available
             console.log("🔐 Opening OAuth URL:", url);
             
             // Open in browser and wait for redirect
@@ -98,12 +118,30 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 const error = parsed.queryParams?.error;
                 
                 if (success && userId) {
-                    setUser({
-                        name: `User ${userId}`,
-                        email: `user${userId}@example.com`,
-                    });
-                    setIsActive(true);
-                    console.log("🎉 Login successful for user:", userId);
+                    // OAuth successful - fetch real Twitter user info
+                    const userIdNum = parseInt(userId, 10);
+                    try {
+                        const twitterUser = await getTwitterUser(userIdNum);
+                        const userData = twitterUser.data;
+                        setUser({
+                            id: userIdNum,
+                            name: userData.name,
+                            username: userData.username,
+                            email: `${userData.username}@twitter.com`,
+                            profileImageUrl: userData.profile_image_url,
+                        });
+                        setIsActive(true);
+                        console.log("🎉 Login successful for user:", userId, userData.name);
+                    } catch (err) {
+                        console.error("❌ Failed to fetch Twitter user:", err);
+                        // Fallback to basic user info
+                        setUser({
+                            id: userIdNum,
+                            name: `User ${userId}`,
+                            email: `user${userId}@example.com`,
+                        });
+                        setIsActive(true);
+                    }
                 } else if (error) {
                     console.error("❌ OAuth error:", error);
                 }
@@ -118,7 +156,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             const url = getOAuthStartUrl("1");
             Linking.openURL(url).catch((err) => {
                 console.error("❌ Fallback Linking also failed:", err);
-            });
+        });
         }
     }, []);
 

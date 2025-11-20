@@ -35,11 +35,17 @@ export function getOAuthStartUrl(userId: string) {
   return `${BASE_URL}/v1/oauth/x/start?${params.toString()}`;
 }
 
-export async function runPreview(): Promise<{ inserted?: number; skipped?: number }> {
-  // Backend expects POST; no body required for now
-  return await request<{ inserted?: number; skipped?: number }>("/v1/analysis/preview", {
+export async function runPreview(userId: number = 1): Promise<{ inserted?: number; skipped?: number }> {
+  // Backend expects POST with user_id query parameter
+  const params = new URLSearchParams({ user_id: String(userId) });
+  return await request<{ inserted?: number; skipped?: number }>(`/v1/analysis/preview?${params.toString()}`, {
     method: "POST",
   });
+}
+
+export async function getTwitterUser(userId: number = 1) {
+  const params = new URLSearchParams({ user_id: String(userId) });
+  return await request<{ data: { id: string; name: string; username: string; profile_image_url?: string } }>(`/v1/x/me?${params.toString()}`);
 }
 
 export async function getPosts(params?: Record<string, string | number | undefined>) {

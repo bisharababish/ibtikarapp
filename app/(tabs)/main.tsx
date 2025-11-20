@@ -84,7 +84,7 @@ export default function MainScreen() {
       // When turning ON, trigger the backend preview pipeline
       try {
         setLoading(true);
-        const res = await runPreview();
+        const res = await runPreview(user?.id || 1);
         console.log("Preview result:", res);
       } catch (e: any) {
         console.error(e);
@@ -129,16 +129,16 @@ export default function MainScreen() {
           <View style={styles.avatarContainer}>
             <Image
               source={{
-                uri: "https://api.dicebear.com/7.x/avataaars/png?seed=Ibtikar",
+                uri: user.profileImageUrl || "https://api.dicebear.com/7.x/avataaars/png?seed=Ibtikar",
               }}
               style={styles.avatar}
             />
             <View style={styles.onlineIndicator} />
           </View>
 
-          <Text style={styles.userName}>Ibtikar User</Text>
-          <Text style={styles.userHandle}>@ibtikar_user</Text>
-          <Text style={styles.userEmail}>user@ibtikar.sa</Text>
+          <Text style={styles.userName}>{user.name || "Ibtikar User"}</Text>
+          <Text style={styles.userHandle}>@{user.username || "ibtikar_user"}</Text>
+          <Text style={styles.userEmail}>{user.email || "user@ibtikar.sa"}</Text>
 
           {/* Official Ibtikar Logo */}
           <View style={styles.logoContainer}>
