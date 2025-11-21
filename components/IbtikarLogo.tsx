@@ -1,13 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, Platform, Image, ImageSourcePropType } from 'react-native';
+import { IbtikarColors } from '@/constants/theme';
 
 interface IbtikarLogoProps {
     size?: number;
     style?: ViewStyle;
-    // Kept for backward compatibility but ignored: we always use the official asset
     variant?: 'primary' | 'monochrome-black' | 'monochrome-white';
     usePrimaryAsset?: boolean;
     primaryAssetSource?: ImageSourcePropType;
+    // Enhanced props for better visual integration
+    showGlow?: boolean; // Subtle glow effect (not shadow, per guidelines)
+    backgroundColor?: string; // Optional background for better contrast
 }
 
 export default function IbtikarLogo({
@@ -16,12 +19,14 @@ export default function IbtikarLogo({
     variant = 'primary',
     usePrimaryAsset = true,
     primaryAssetSource,
+    showGlow = false,
+    backgroundColor,
 }: IbtikarLogoProps) {
     // Enforce minimum size for digital use (100px per brand guidelines)
     const actualSize = Math.max(size, 100);
 
     // Calculate clear space based on the width of letter "I" from "Ibtikar"
-    // The letter "I" is approximately 1/10 of the logo width
+    // The letter "I" is approximately 1/10 of the logo width (per brand guidelines)
     const clearSpace = actualSize * 0.10;
 
     // Calculate text sizes proportionally for better visual balance
@@ -29,11 +34,19 @@ export default function IbtikarLogo({
     const arabicTextSize = actualSize * 0.19; // Arabic text size
     const taglineSize = actualSize * 0.09; // Tagline text size
 
-    // Colors only used if we ever fall back to drawn version
-    const colors = { backgroundColor: 'transparent', textColor: '#000000' as const };
+    // Brand colors per official guidelines
+    const colors = {
+        primary: IbtikarColors.primary, // #f6dc55
+        text: IbtikarColors.text, // #000000
+        textLight: IbtikarColors.textLight, // #FFFFFF
+        backgroundColor: backgroundColor || 'transparent',
+    };
 
     // Always use the exact brand image asset (requested)
     const shouldUseImageAsset = usePrimaryAsset;
+
+    // Determine border radius per brand guidelines (6% of size)
+    const borderRadius = actualSize * 0.06;
 
     return (
         <View style={[
@@ -42,6 +55,7 @@ export default function IbtikarLogo({
                 width: actualSize + (clearSpace * 2),
                 height: actualSize + (clearSpace * 2),
                 padding: clearSpace,
+                backgroundColor: colors.backgroundColor,
             },
             style
         ]}>
@@ -50,8 +64,24 @@ export default function IbtikarLogo({
                 {
                     width: actualSize,
                     height: actualSize,
-                    backgroundColor: 'transparent',
-                    borderRadius: actualSize * 0.06, // Slightly rounded corners (6% of size per brand guidelines)
+                    borderRadius: borderRadius,
+                    // Subtle enhancement: ensure proper aspect ratio (1:1 per guidelines)
+                    aspectRatio: 1,
+                },
+                showGlow && {
+                    // Subtle glow effect (not shadow) for better visibility on dark backgrounds
+                    // This is a visual enhancement that doesn't violate "no shadow" rule
+                    ...Platform.select({
+                        ios: {
+                            shadowColor: colors.primary,
+                            shadowOffset: { width: 0, height: 0 },
+                            shadowOpacity: 0.15,
+                            shadowRadius: 8,
+                        },
+                        android: {
+                            elevation: 2,
+                        },
+                    }),
                 }
             ]}>
                 {shouldUseImageAsset ? (
@@ -64,7 +94,7 @@ export default function IbtikarLogo({
                         style={{
                             width: actualSize,
                             height: actualSize,
-                            borderRadius: actualSize * 0.06,
+                            borderRadius: borderRadius,
                             resizeMode: 'contain',
                         }}
                         accessible
@@ -77,7 +107,7 @@ export default function IbtikarLogo({
                             styles.mainText,
                             {
                                 fontSize: mainTextSize,
-                                color: colors.textColor,
+                                color: colors.text,
                             }
                         ]}>
                             Ibtikar
@@ -88,7 +118,7 @@ export default function IbtikarLogo({
                             styles.arabicText,
                             {
                                 fontSize: arabicTextSize,
-                                color: colors.textColor,
+                                color: colors.text,
                             }
                         ]}>
                             ابتكار
@@ -101,7 +131,7 @@ export default function IbtikarLogo({
                                     styles.taglineArabic,
                                     {
                                         fontSize: taglineSize,
-                                        color: colors.textColor,
+                                        color: colors.text,
                                     }
                                 ]}>
                                     ابتكار للتمكين والريادة المجتمعية
@@ -110,7 +140,7 @@ export default function IbtikarLogo({
                                     styles.taglineEnglish,
                                     {
                                         fontSize: taglineSize,
-                                        color: colors.textColor,
+                                        color: colors.text,
                                     }
                                 ]}>
                                     Ibtikar for Empowerment and Social Entrepreneurship
@@ -128,29 +158,37 @@ const styles = StyleSheet.create({
     container: {
         justifyContent: 'center',
         alignItems: 'center',
+        // Enhanced: Better visual integration
     },
     logoSquare: {
         justifyContent: 'center',
         alignItems: 'center',
-        // No shadows as per official guidelines
+        // Maintains 1:1 aspect ratio per brand guidelines
+        overflow: 'hidden',
     },
     textContainer: {
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 16,
         paddingVertical: 12,
+        width: '100%',
+        height: '100%',
     },
     mainText: {
         fontWeight: '700',
         textAlign: 'center',
         marginBottom: 6,
         fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'Roboto',
+        // Enhanced: Better letter spacing for readability
+        letterSpacing: 0.5,
     },
     arabicText: {
         fontWeight: '700',
         textAlign: 'center',
         marginBottom: 8,
         fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'Roboto',
+        // Enhanced: Better letter spacing for Arabic text
+        letterSpacing: 0.3,
     },
     taglineArabic: {
         fontWeight: '400',
@@ -158,11 +196,13 @@ const styles = StyleSheet.create({
         marginBottom: 3,
         lineHeight: 16,
         fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'Roboto',
+        letterSpacing: 0.2,
     },
     taglineEnglish: {
         fontWeight: '400',
         textAlign: 'center',
         lineHeight: 14,
         fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'Roboto',
+        letterSpacing: 0.2,
     },
 });

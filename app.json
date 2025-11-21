@@ -8,13 +8,13 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "description": "Ibtikar for Empowerment and Social Entrepreneurship",
-    "primaryColor": "#f6de55",
+    "primaryColor": "#f6dc55",
     "backgroundColor": "#ffffff",
     "icon": "./assets/images/icon.png",
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#f6de55"
+      "backgroundColor": "#f6dc55"
     },
     "ios": {
       "supportsTablet": true,
