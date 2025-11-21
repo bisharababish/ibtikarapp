@@ -29,8 +29,8 @@ export function usePosts(userId?: number) {
     try {
       setLoading(true);
       setError(null);
-      // Fetch ALL posts - show everything from backend
-      const res = await getPosts(userId, { limit: 100, offset: 0 });
+      // Fetch ALL posts - show everything from backend, ordered by newest first
+      const res = await getPosts(userId, { limit: 200, offset: 0 });
       // Support both {items: [], total: 0} and a plain array just in case
       const list = Array.isArray((res as any)?.items)
         ? ((res as any).items as AnalyzedPost[])

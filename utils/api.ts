@@ -20,7 +20,34 @@ async function request<T>(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
+    let errorMessage = `HTTP ${res.status} ${res.statusText}`;
+    
+    // Try to parse JSON error details
+    try {
+      const errorJson = JSON.parse(text);
+      if (errorJson.detail) {
+        if (typeof errorJson.detail === "string") {
+          errorMessage += ` - ${errorJson.detail}`;
+        } else if (errorJson.detail.error === "rate_limited") {
+          const resetTime = errorJson.detail.reset_time;
+          const resource = errorJson.detail.resource || "API";
+          errorMessage = `Rate limit exceeded (${resource}). `;
+          if (resetTime) {
+            errorMessage += `Reset time: ${resetTime}. `;
+          }
+          errorMessage += "Please wait 5-10 minutes before trying again.";
+        } else {
+          errorMessage += ` - ${JSON.stringify(errorJson.detail)}`;
+        }
+      } else {
+        errorMessage += ` - ${text}`;
+      }
+    } catch {
+      // Not JSON, use raw text
+      errorMessage += ` - ${text}`;
+    }
+    
+    throw new Error(errorMessage);
   }
   // Try JSON first; fall back to empty as unknown
   try {
@@ -35,33 +62,33 @@ export function getOAuthStartUrl(userId: string) {
   return `${BASE_URL}/v1/oauth/x/start?${params.toString()}`;
 }
 
-export async function runPreview(userId: number = 1): Promise<{ inserted?: number; skipped?: number }> {
+export async function runPreview(userId: number = 1): Promise<{
+  items?: unknown[];
+  harmful_count?: number;
+  safe_count?: number;
+  unknown_count?: number;
+  inserted?: number;
+  skipped?: number;
+}> {
   // Backend expects POST with user_id query parameter
   // Ensure userId is a valid number
   const validUserId = Number(userId) || 1;
-  
-  // Build URL with query parameter - FastAPI expects query params even for POST
-  const urlWithParams = `${BASE_URL}/v1/analysis/preview?user_id=${validUserId}`;
-  console.log("🔍 Calling preview API:", urlWithParams, "with user_id:", validUserId);
-  
+  const params = new URLSearchParams({ user_id: String(validUserId) });
+  const url = `/v1/analysis/preview?${params.toString()}`;
+  console.log("🔍 Calling preview API:", `${BASE_URL}${url}`, "with user_id:", validUserId);
   try {
-    // Use fetch directly to ensure query params are sent correctly
-    const res = await fetch(urlWithParams, {
+    const result = await request<{
+      items?: unknown[];
+      harmful_count?: number;
+      safe_count?: number;
+      unknown_count?: number;
+      inserted?: number;
+      skipped?: number;
+    }>(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
     });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      console.error("❌ Preview API error response:", res.status, text);
-      throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
-    }
-    
-    const result = await res.json();
     console.log("✅ Preview API success:", result);
-    return result as { inserted?: number; skipped?: number };
+    return result;
   } catch (error) {
     console.error("❌ Preview API error:", error);
     throw error;
@@ -73,14 +100,17 @@ export async function getTwitterUser(userId: number = 1) {
   return await request<{ data: { id: string; name: string; username: string; profile_image_url?: string } }>(`/v1/x/me?${params.toString()}`);
 }
 
-export async function getPosts(params?: Record<string, string | number | undefined>) {
-  const qs = params
-    ? "?" +
-      Object.entries(params)
-        .filter(([, v]) => v !== undefined && v !== "")
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-        .join("&")
-    : "";
+export async function getPosts(userId: number, params?: Record<string, string | number | undefined>) {
+  // user_id is required by the backend
+  const allParams = {
+    user_id: userId,
+    ...params,
+  };
+  const qs = "?" +
+    Object.entries(allParams)
+      .filter(([, v]) => v !== undefined && v !== "")
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+      .join("&");
   return await request<{ items: unknown[] }>(`/v1/analysis/posts${qs}`);
 }
 
