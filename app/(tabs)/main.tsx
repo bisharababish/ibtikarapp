@@ -269,11 +269,11 @@ export default function MainScreen() {
                     <Text style={{ color: "#10b981", fontSize: 11 }}>
                       Safe: {analysisSummary.safe_count ?? 0}
                     </Text>
-                    {analysisSummary.unknown_count && analysisSummary.unknown_count > 0 && (
+                    {analysisSummary.unknown_count && analysisSummary.unknown_count > 0 ? (
                       <Text style={{ color: "#888888", fontSize: 11 }}>
                         Unknown: {analysisSummary.unknown_count}
                       </Text>
-                    )}
+                    ) : null}
                   </View>
                 )}
               </View>
