@@ -115,15 +115,25 @@ export default function MainScreen() {
         setTimeout(() => {
           console.log("🔄 Refreshing posts after analysis...");
           refresh();
-        }, 1000);
+        }, 2000); // Increased to 2 seconds to ensure DB save
       } catch (e: any) {
         console.error("Preview error:", e);
         // Try to extract more detailed error message
         let errorMsg = e?.message || "Failed to start analysis";
         if (errorMsg.includes("HTTP 500")) {
           errorMsg = "Server error. This might be due to:\n• Twitter API connection issue\n• Database problem\n• Model API unavailable\n\nPlease try again in a moment.";
-        } else if (errorMsg.includes("HTTP 429")) {
-          errorMsg = "Rate limit exceeded. Please wait a few minutes and try again.";
+        } else if (errorMsg.includes("HTTP 429") || errorMsg.includes("rate_limited") || errorMsg.includes("rate limit")) {
+          // Try to extract reset time from error details
+          let resetInfo = "";
+          try {
+            const errorText = e?.message || "";
+            const resetMatch = errorText.match(/reset_time[:\s]+([^,\n}]+)/i);
+            if (resetMatch) {
+              resetInfo = `\n\nReset time: ${resetMatch[1]}`;
+            }
+          } catch {}
+          
+          errorMsg = `Rate limit exceeded. The API has temporarily limited requests.\n\nPlease wait 5-10 minutes before trying again.${resetInfo}`;
         }
         setError(errorMsg);
         // Revert toggle if error occurred
@@ -259,11 +269,11 @@ export default function MainScreen() {
                     <Text style={{ color: "#10b981", fontSize: 11 }}>
                       Safe: {analysisSummary.safe_count ?? 0}
                     </Text>
-                    {analysisSummary.unknown_count && analysisSummary.unknown_count > 0 && (
+                    {analysisSummary.unknown_count && analysisSummary.unknown_count > 0 ? (
                       <Text style={{ color: "#888888", fontSize: 11 }}>
                         Unknown: {analysisSummary.unknown_count}
                       </Text>
-                    )}
+                    ) : null}
                   </View>
                 )}
               </View>
