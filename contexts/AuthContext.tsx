@@ -120,8 +120,14 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                         setIsActive(true);
                     }
                 } else if (error) {
-                    console.error("❌ OAuth error:", error);
-                    // Handle error - show error message to user
+                    // Handle access_denied gracefully - user cancelled to switch accounts
+                    if (error === "access_denied") {
+                        console.log("ℹ️ User cancelled OAuth (likely to switch accounts). You can try again.");
+                        // Don't show as error - user can retry
+                    } else {
+                        console.error("❌ OAuth error:", error);
+                        // Handle error - show error message to user
+                    }
                 }
             }
         } catch (error) {
@@ -209,10 +215,16 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                         setIsActive(true);
                     }
                 } else if (error) {
-                    console.error("❌ OAuth error:", error);
+                    // Handle access_denied gracefully - user cancelled to switch accounts
+                    if (error === "access_denied") {
+                        console.log("ℹ️ User cancelled OAuth (likely to switch accounts). You can try again.");
+                        // Don't show as error - user can retry
+                    } else {
+                        console.error("❌ OAuth error:", error);
+                    }
                 }
             } else if (result.type === "cancel") {
-                console.log("❌ User cancelled OAuth");
+                console.log("ℹ️ User cancelled OAuth. You can try again with a different account.");
             } else {
                 console.log("⚠️ OAuth result type:", result.type);
             }
