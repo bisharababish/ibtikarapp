@@ -4,6 +4,7 @@ import { Linking } from "react-native";
 import * as LinkingExpo from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { getOAuthStartUrl, getTwitterUser } from "@/utils/api";
+import { BASE_URL } from "@/constants/config";
 
 // Make sure WebBrowser closes properly after OAuth
 WebBrowser.maybeCompleteAuthSession();
@@ -137,9 +138,20 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
     const loginWithTwitter = useCallback(async () => {
         try {
+            // ALWAYS clear tokens first to allow account switching
+            // This ensures user can switch accounts every time
+            console.log("🧹 Clearing any existing OAuth tokens to allow account switching...");
+            try {
+                await fetch(`${BASE_URL}/v1/oauth/x/clear?user_id=1`, { method: "GET" });
+                console.log("✅ Tokens cleared - ready for fresh login");
+            } catch (clearError) {
+                console.log("⚠️ Could not clear tokens (might not exist):", clearError);
+                // Continue anyway - OAuth will work
+            }
+            
             // Use expo-web-browser for better OAuth handling
-        const url = getOAuthStartUrl("1"); // Replace with real user id when available
-            console.log("🔐 Opening OAuth URL:", url);
+            const url = getOAuthStartUrl("1");
+            console.log("🔐 Opening OAuth URL (with force_login=true):", url);
             
             // Open in browser and wait for redirect
             const result = await WebBrowser.openAuthSessionAsync(
