@@ -65,19 +65,52 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                     // OAuth successful - fetch real Twitter user info
                     const userIdNum = parseInt(userId, 10);
                     try {
+                        console.log("📞 Fetching Twitter user data for user_id:", userIdNum);
                         const twitterUser = await getTwitterUser(userIdNum);
-                        const userData = twitterUser.data;
-                        setUser({
-                            id: userIdNum,
-                            name: userData.name,
-                            username: userData.username,
-                            email: `${userData.username}@twitter.com`,
-                            profileImageUrl: userData.profile_image_url,
-                        });
-                        setIsActive(true);
-                        console.log("🎉 Login successful for user:", userId, userData.name);
+                        console.log("📦 Twitter API response:", JSON.stringify(twitterUser, null, 2));
+                        
+                        // Check if rate limited
+                        if (twitterUser?.rate_limited) {
+                            console.warn("⚠️ Twitter API rate limited, using fallback");
+                            setUser({
+                                id: userIdNum,
+                                name: `User ${userId}`,
+                                email: `user${userId}@example.com`,
+                            });
+                            setIsActive(true);
+                            return;
+                        }
+                        
+                        const userData = twitterUser?.data;
+                        console.log("👤 User data extracted:", userData);
+                        
+                        if (userData && userData.name) {
+                            setUser({
+                                id: userIdNum,
+                                name: userData.name,
+                                username: userData.username,
+                                email: `${userData.username || `user${userId}`}@twitter.com`,
+                                profileImageUrl: userData.profile_image_url,
+                            });
+                            setIsActive(true);
+                            console.log("🎉 Login successful for user:", userId, userData.name);
+                        } else {
+                            // API returned but data is missing
+                            console.warn("⚠️ Twitter user data missing or invalid:", {
+                                hasUserData: !!userData,
+                                hasName: !!(userData?.name),
+                                fullResponse: twitterUser
+                            });
+                            setUser({
+                                id: userIdNum,
+                                name: `User ${userId}`,
+                                email: `user${userId}@example.com`,
+                            });
+                            setIsActive(true);
+                        }
                     } catch (err) {
                         console.error("❌ Failed to fetch Twitter user:", err);
+                        console.error("❌ Error details:", err instanceof Error ? err.message : JSON.stringify(err, null, 2));
                         // Fallback to basic user info
                         setUser({
                             id: userIdNum,
@@ -121,19 +154,52 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                     // OAuth successful - fetch real Twitter user info
                     const userIdNum = parseInt(userId, 10);
                     try {
+                        console.log("📞 Fetching Twitter user data for user_id:", userIdNum);
                         const twitterUser = await getTwitterUser(userIdNum);
-                        const userData = twitterUser.data;
-                        setUser({
-                            id: userIdNum,
-                            name: userData.name,
-                            username: userData.username,
-                            email: `${userData.username}@twitter.com`,
-                            profileImageUrl: userData.profile_image_url,
-                        });
-                        setIsActive(true);
-                        console.log("🎉 Login successful for user:", userId, userData.name);
+                        console.log("📦 Twitter API response:", JSON.stringify(twitterUser, null, 2));
+                        
+                        // Check if rate limited
+                        if (twitterUser?.rate_limited) {
+                            console.warn("⚠️ Twitter API rate limited, using fallback");
+                            setUser({
+                                id: userIdNum,
+                                name: `User ${userId}`,
+                                email: `user${userId}@example.com`,
+                            });
+                            setIsActive(true);
+                            return;
+                        }
+                        
+                        const userData = twitterUser?.data;
+                        console.log("👤 User data extracted:", userData);
+                        
+                        if (userData && userData.name) {
+                            setUser({
+                                id: userIdNum,
+                                name: userData.name,
+                                username: userData.username,
+                                email: `${userData.username || `user${userId}`}@twitter.com`,
+                                profileImageUrl: userData.profile_image_url,
+                            });
+                            setIsActive(true);
+                            console.log("🎉 Login successful for user:", userId, userData.name);
+                        } else {
+                            // API returned but data is missing
+                            console.warn("⚠️ Twitter user data missing or invalid:", {
+                                hasUserData: !!userData,
+                                hasName: !!(userData?.name),
+                                fullResponse: twitterUser
+                            });
+                            setUser({
+                                id: userIdNum,
+                                name: `User ${userId}`,
+                                email: `user${userId}@example.com`,
+                            });
+                            setIsActive(true);
+                        }
                     } catch (err) {
                         console.error("❌ Failed to fetch Twitter user:", err);
+                        console.error("❌ Error details:", err instanceof Error ? err.message : JSON.stringify(err, null, 2));
                         // Fallback to basic user info
                         setUser({
                             id: userIdNum,

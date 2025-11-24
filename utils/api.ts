@@ -20,7 +20,23 @@ async function request<T>(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
+    // Try to parse error as JSON for better error messages
+    let errorDetail = text;
+    try {
+      const errorJson = JSON.parse(text);
+      if (errorJson.detail) {
+        if (errorJson.detail.rate_limited) {
+          const resetTime = errorJson.detail.reset_time || errorJson.detail.reset_epoch;
+          throw new Error(
+            `Rate limit exceeded (${errorJson.detail.resource || "unknown"}). Reset time: ${resetTime}. Please wait 5-10 minutes before trying again.`
+          );
+        }
+        errorDetail = JSON.stringify(errorJson.detail);
+      }
+    } catch {
+      // Not JSON, use text as is
+    }
+    throw new Error(`HTTP ${res.status} ${res.statusText} - ${errorDetail}`);
   }
   // Try JSON first; fall back to empty as unknown
   try {
@@ -70,7 +86,22 @@ export async function runPreview(userId: number = 1): Promise<{ inserted?: numbe
 
 export async function getTwitterUser(userId: number = 1) {
   const params = new URLSearchParams({ user_id: String(userId) });
-  return await request<{ data: { id: string; name: string; username: string; profile_image_url?: string } }>(`/v1/x/me?${params.toString()}`);
+  try {
+    const response = await request<{ 
+      data?: { id: string; name: string; username: string; profile_image_url?: string };
+      rate_limited?: boolean;
+      resource?: string;
+      reset?: string;
+      limit?: string;
+      remaining?: string;
+    }>(`/v1/x/me?${params.toString()}`);
+    
+    console.log("📡 getTwitterUser API response:", JSON.stringify(response, null, 2));
+    return response;
+  } catch (error) {
+    console.error("❌ getTwitterUser API error:", error);
+    throw error;
+  }
 }
 
 export async function getPosts(params?: Record<string, string | number | undefined>) {
