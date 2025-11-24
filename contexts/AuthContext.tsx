@@ -218,7 +218,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                     // Handle access_denied gracefully - user cancelled to switch accounts
                     if (error === "access_denied") {
                         console.log("ℹ️ User cancelled OAuth (likely to switch accounts). You can try again.");
-                        // Don't throw error - just return silently so user can retry
+                        // Don't log as error - just return silently so user can retry
+                        // This is expected when user wants to switch accounts
                         return;
                     } else {
                         console.error("❌ OAuth error:", error);
