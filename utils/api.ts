@@ -21,7 +21,7 @@ async function request<T>(
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     let errorMessage = `HTTP ${res.status} ${res.statusText}`;
-    
+
     // Try to parse JSON error details
     try {
       const errorJson = JSON.parse(text);
@@ -46,7 +46,7 @@ async function request<T>(
       // Not JSON, use raw text
       errorMessage += ` - ${text}`;
     }
-    
+
     throw new Error(errorMessage);
   }
   // Try JSON first; fall back to empty as unknown
@@ -108,7 +108,7 @@ export async function getPosts(userId: number, params?: Record<string, string | 
   };
   const qs = "?" +
     Object.entries(allParams)
-      .filter(([, v]) => v !== undefined && v !== "")
+      .filter(([, v]) => v !== undefined && String(v) !== "")
       .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
       .join("&");
   return await request<{ items: unknown[] }>(`/v1/analysis/posts${qs}`);

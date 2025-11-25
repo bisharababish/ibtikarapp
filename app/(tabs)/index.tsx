@@ -17,7 +17,7 @@ import IbtikarLogo from "@/components/IbtikarLogo";
 const { width } = Dimensions.get("window");
 
 export default function LoginScreen() {
-  const { user, loginWithTwitter } = useAuth();
+  const { user, loginWithTwitter, isLoggingIn } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -28,6 +28,10 @@ export default function LoginScreen() {
   }, [user, router]);
 
   const handleTwitterLogin = () => {
+    if (isLoggingIn) {
+      console.log("⚠️ Login already in progress");
+      return;
+    }
     console.log("Twitter login initiated");
     loginWithTwitter();
   };
@@ -60,12 +64,15 @@ export default function LoginScreen() {
           </Text>
 
           <TouchableOpacity
-            style={styles.twitterButton}
+            style={[styles.twitterButton, isLoggingIn && styles.twitterButtonDisabled]}
             onPress={handleTwitterLogin}
             activeOpacity={0.8}
+            disabled={isLoggingIn}
           >
             <Twitter color="#FFFFFF" size={24} strokeWidth={2.5} />
-            <Text style={styles.buttonText}>Login with Twitter</Text>
+            <Text style={styles.buttonText}>
+              {isLoggingIn ? "Logging in..." : "Login with Twitter"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -142,5 +149,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#FFFFFF",
     letterSpacing: 0.5,
+  },
+  twitterButtonDisabled: {
+    opacity: 0.6,
   },
 });
