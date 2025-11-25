@@ -29,7 +29,7 @@ async function request<T>(
         if (typeof errorJson.detail === "string") {
           errorMessage += ` - ${errorJson.detail}`;
         } else if (errorJson.detail.error === "rate_limited") {
-          const resetTime = errorJson.detail.reset_time;
+          const resetTime = errorJson.detail.reset_time || errorJson.detail.reset_epoch;
           const resource = errorJson.detail.resource || "API";
           errorMessage = `Rate limit exceeded (${resource}). `;
           if (resetTime) {
@@ -97,7 +97,22 @@ export async function runPreview(userId: number = 1): Promise<{
 
 export async function getTwitterUser(userId: number = 1) {
   const params = new URLSearchParams({ user_id: String(userId) });
-  return await request<{ data: { id: string; name: string; username: string; profile_image_url?: string } }>(`/v1/x/me?${params.toString()}`);
+  try {
+    const response = await request<{ 
+      data?: { id: string; name: string; username: string; profile_image_url?: string };
+      rate_limited?: boolean;
+      resource?: string;
+      reset?: string;
+      limit?: string;
+      remaining?: string;
+    }>(`/v1/x/me?${params.toString()}`);
+    
+    console.log("📡 getTwitterUser API response:", JSON.stringify(response, null, 2));
+    return response;
+  } catch (error) {
+    console.error("❌ getTwitterUser API error:", error);
+    throw error;
+  }
 }
 
 export async function getPosts(userId: number, params?: Record<string, string | number | undefined>) {
