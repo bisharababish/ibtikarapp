@@ -98,7 +98,7 @@ export async function runPreview(userId: number = 1): Promise<{
 export async function getTwitterUser(userId: number = 1) {
   const params = new URLSearchParams({ user_id: String(userId) });
   try {
-    const response = await request<{ 
+    const response = await request<{
       data?: { id: string; name: string; username: string; profile_image_url?: string };
       rate_limited?: boolean;
       resource?: string;
@@ -106,7 +106,7 @@ export async function getTwitterUser(userId: number = 1) {
       limit?: string;
       remaining?: string;
     }>(`/v1/x/me?${params.toString()}`);
-    
+
     console.log("📡 getTwitterUser API response:", JSON.stringify(response, null, 2));
     return response;
   } catch (error) {
