@@ -27,15 +27,6 @@ export default function LoginScreen() {
     }
   }, [user, router]);
 
-  const handleTwitterLogin = () => {
-    if (isLoggingIn) {
-      console.log("⚠️ Login already in progress");
-      return;
-    }
-    console.log("Twitter login initiated");
-    loginWithTwitter();
-  };
-
   return (
     <LinearGradient
       colors={["#000000", "#0a0a0a", "#000000"]}
@@ -65,7 +56,7 @@ export default function LoginScreen() {
 
           <TouchableOpacity
             style={[styles.twitterButton, isLoggingIn && styles.twitterButtonDisabled]}
-            onPress={handleTwitterLogin}
+            onPress={loginWithTwitter}
             activeOpacity={0.8}
             disabled={isLoggingIn}
           >

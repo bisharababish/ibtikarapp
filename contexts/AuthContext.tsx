@@ -1,10 +1,11 @@
-import { BASE_URL } from "@/constants/config";
 import { getOAuthStartUrl, getTwitterUser } from "@/utils/api";
+// @ts-ignore - Package is installed, TypeScript types may not be resolved
 import createContextHook from "@nkzw/create-context-hook";
+// @ts-ignore - Package is installed, TypeScript types may not be resolved
 import * as WebBrowser from "expo-web-browser";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Linking } from "react-native";
 
-// Make sure WebBrowser closes properly after OAuth
 WebBrowser.maybeCompleteAuthSession();
 
 interface User {
@@ -20,186 +21,164 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const [isActive, setIsActive] = useState<boolean>(false);
     const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
 
-    // Use explicit custom scheme - no localhost
     const redirectUri = "ibtikar://oauth/callback";
 
-    // Handle OAuth callback from deep link
-    const handleOAuthCallback = useCallback(async (params: Record<string, string>) => {
+    // Handle OAuth callback
+    const handleCallback = useCallback(async (url: string) => {
         try {
-            console.log("🔗 OAuth callback received:", params);
+            // Parse URL manually (deep links like ibtikar://oauth/callback?success=true&user_id=1)
+            if (!url.startsWith("ibtikar://") || !url.includes("oauth/callback")) {
+                return;
+            }
+
+            // Extract query string
+            const queryString = url.split("?")[1] || "";
+            const params: Record<string, string> = {};
+            queryString.split("&").forEach((param) => {
+                const [key, value] = param.split("=");
+                if (key && value) {
+                    params[decodeURIComponent(key)] = decodeURIComponent(value);
+                }
+            });
 
             const success = params.success === "true";
-            const userIdParam = params.user_id;
+            const userId = params.user_id;
             const error = params.error;
 
-            console.log("📦 OAuth callback data:", { success, userId: userIdParam, error });
-
-            // Handle errors
             if (error === "access_denied") {
-                console.log("ℹ️ User cancelled OAuth");
                 setIsLoggingIn(false);
                 return;
             }
 
-            if (!success || !userIdParam) {
-                console.error("❌ OAuth failed:", { success, userId: userIdParam, error });
+            if (!success || !userId) {
                 setIsLoggingIn(false);
                 return;
             }
 
-            // OAuth successful - get user ID
-            const userIdNum = parseInt(userIdParam, 10);
+            const userIdNum = parseInt(userId || "0", 10);
 
             if (isNaN(userIdNum)) {
-                console.error("❌ Invalid user ID:", userIdParam);
                 setIsLoggingIn(false);
                 return;
             }
 
-            console.log("✅ OAuth successful, fetching user data for user_id:", userIdNum);
+            // Get user data
+            const response = await getTwitterUser(userIdNum);
+            const userData = response?.data;
 
-            // Fetch user data from backend
-            try {
-                const response = await getTwitterUser(userIdNum);
-                const userData = response?.data;
-
-                if (userData && userData.name) {
-                    const newUser: User = {
-                        id: userIdNum,
-                        name: userData.name,
-                        username: userData.username,
-                        email: `${userData.username || `user${userIdNum}`}@twitter.com`,
-                        profileImageUrl: userData.profile_image_url,
-                    };
-
-                    setUser(newUser);
-                    setIsActive(false);
-                    setIsLoggingIn(false);
-                    console.log("🎉 Login successful:", newUser.name);
-                } else {
-                    console.warn("⚠️ User data missing, using fallback");
-                    setUser({
-                        id: userIdNum,
-                        name: `User ${userIdNum}`,
-                        email: `user${userIdNum}@example.com`,
-                    });
-                    setIsActive(false);
-                    setIsLoggingIn(false);
-                }
-            } catch (err) {
-                console.error("❌ Failed to fetch user data:", err);
-                // Fallback user
+            if (userData?.name) {
+                setUser({
+                    id: userIdNum,
+                    name: userData.name,
+                    username: userData.username,
+                    email: `${userData.username || `user${userIdNum}`}@twitter.com`,
+                    profileImageUrl: userData.profile_image_url,
+                });
+                setIsActive(false);
+            } else {
                 setUser({
                     id: userIdNum,
                     name: `User ${userIdNum}`,
                     email: `user${userIdNum}@example.com`,
                 });
                 setIsActive(false);
-                setIsLoggingIn(false);
             }
+
+            setIsLoggingIn(false);
         } catch (error) {
-            console.error("❌ Error handling OAuth callback:", error);
+            console.error("Callback error:", error);
             setIsLoggingIn(false);
         }
     }, []);
 
-    // Login with Twitter - ALWAYS shows login/signup screen
+    // Listen for deep links (handles OAuth callback from backend)
+    useEffect(() => {
+        // Check for initial URL when app opens
+        Linking.getInitialURL().then((url) => {
+            if (url && url.startsWith("ibtikar://oauth/callback")) {
+                console.log("🔗 Initial deep link:", url);
+                handleCallback(url);
+            }
+        });
+
+        // Listen for deep links while app is running
+        const subscription = Linking.addEventListener("url", (event) => {
+            if (event.url && event.url.startsWith("ibtikar://oauth/callback")) {
+                console.log("🔗 Deep link received:", event.url);
+                handleCallback(event.url);
+            }
+        });
+
+        return () => {
+            subscription.remove();
+        };
+    }, [handleCallback]);
+
+    // Simple login function - works for any Twitter account
     const loginWithTwitter = useCallback(async () => {
-        if (isLoggingIn) {
-            console.log("⚠️ Login already in progress");
-            return;
-        }
+        if (isLoggingIn) return;
 
         setIsLoggingIn(true);
 
         try {
-            console.log("🚀 Starting Twitter login...");
-            console.log("🔗 Redirect URI:", redirectUri);
-
-            // STEP 1: Clear backend tokens (allows account switching)
+            // Step 1: Open Twitter logout to clear session
+            // User needs to click "Log out" button, then we proceed to OAuth
             try {
-                const clearResponse = await fetch(`${BASE_URL}/v1/oauth/x/clear?user_id=1`, {
-                    method: "GET",
-                });
-                if (clearResponse.ok) {
-                    console.log("✅ Cleared backend tokens");
-                }
-            } catch (err) {
-                console.log("⚠️ Error clearing tokens:", err);
-            }
-
-            // STEP 2: Dismiss any existing browser sessions to clear Twitter cookies
-            // This is CRITICAL to force the login screen every time
-            // Add timeout to prevent hanging
-            try {
-                const dismissPromise = WebBrowser.dismissBrowser();
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("Timeout")), 500)
-                );
-                await Promise.race([dismissPromise, timeoutPromise]);
-                console.log("✅ Dismissed existing browser session");
+                await WebBrowser.openBrowserAsync("https://twitter.com/logout");
+                // Wait longer (5 seconds) for user to click "Log out" and process
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                await WebBrowser.dismissBrowser();
             } catch {
-                // No browser to dismiss or timeout - that's fine, continue
-                console.log("ℹ️ No existing browser session to dismiss");
+                // Ignore errors, continue to OAuth
             }
 
-            // STEP 3: Build OAuth URL with aggressive cache-busting
-            // Backend already includes force_login=true which forces login screen
-            console.log("🔐 Step 3: Building OAuth URL...");
-            const timestamp = Date.now();
-            const randomId = Math.random().toString(36).substring(7);
-            const randomNum = Math.floor(Math.random() * 1000000);
-            const oauthUrl = `${getOAuthStartUrl("1")}&_t=${timestamp}&_r=${randomId}&_cb=${randomNum}`;
-            console.log("✅ OAuth URL built:", oauthUrl.substring(0, 100) + "...");
+            // Step 2: Get OAuth URL from backend (backend handles user creation)
+            const oauthUrl = getOAuthStartUrl("1");
 
-            console.log("🔐 Step 4: Opening OAuth session...");
-            console.log("ℹ️ Backend uses force_login=true to show SIGN IN page every time");
-
-            // STEP 4: Open OAuth session
-            // force_login=true in backend URL ensures login screen is shown
-            const result = await WebBrowser.openAuthSessionAsync(
-                oauthUrl,
-                redirectUri
-            );
-
+            // Step 3: Open OAuth in app browser
+            console.log("🔐 Opening OAuth session...");
+            const result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
             console.log("🔗 OAuth result:", result.type);
 
-            if (result.type === "success" && result.url) {
-                // Parse the callback URL parameters
-                // Extract query string from URL
-                const queryString = result.url.split('?')[1] || '';
-                const params: Record<string, string> = {};
+            // Handle result
+            if (result.type === "success") {
+                // @ts-ignore - result.url exists when type is "success"
+                const callbackUrl = result.url;
+                console.log("🔗 OAuth callback URL:", callbackUrl?.substring(0, 100));
 
-                // Parse query parameters manually for React Native compatibility
-                queryString.split('&').forEach((param) => {
-                    const [key, value] = param.split('=');
-                    if (key && value) {
-                        params[decodeURIComponent(key)] = decodeURIComponent(value);
-                    }
-                });
-
-                await handleOAuthCallback(params);
+                if (callbackUrl && callbackUrl.startsWith("ibtikar://")) {
+                    console.log("✅ Got deep link from OAuth");
+                    await handleCallback(callbackUrl);
+                } else {
+                    console.log("⚠️ OAuth completed but no deep link in result");
+                    console.log("ℹ️ Deep link should be caught by listener - check console for '🔗 Deep link received'");
+                    // Deep link should be caught by the listener
+                    // Give it a moment, then reset if nothing happens
+                    setTimeout(() => {
+                        if (isLoggingIn) {
+                            console.log("⚠️ No deep link received after 3 seconds");
+                            setIsLoggingIn(false);
+                        }
+                    }, 3000);
+                }
             } else if (result.type === "cancel" || result.type === "dismiss") {
                 console.log("ℹ️ User cancelled OAuth");
                 setIsLoggingIn(false);
             } else {
-                console.log("⚠️ Unexpected OAuth result:", result);
+                console.log("⚠️ Unexpected OAuth result:", result.type);
                 setIsLoggingIn(false);
             }
         } catch (error) {
-            console.error("❌ Twitter login error:", error);
+            console.error("Login error:", error);
             setIsLoggingIn(false);
         }
-    }, [handleOAuthCallback, isLoggingIn, redirectUri]);
+    }, [handleCallback, isLoggingIn, redirectUri]);
 
-    // Logout function
     const logout = useCallback(() => {
-        console.log("🚪 Logging out...");
         setUser(null);
         setIsActive(false);
     }, []);
 
-    // Toggle active state
     const toggleActive = useCallback(() => {
         setIsActive((prev) => !prev);
     }, []);
@@ -216,3 +195,4 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         [user, isActive, isLoggingIn, loginWithTwitter, logout, toggleActive]
     );
 });
+
