@@ -20,69 +20,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const { width } = Dimensions.get("window");
 
 export default function LoginScreen() {
-  const { user, loginWithTwitter, isLoggingIn, cancelLogin, pollingStatus, manualCheckStatus } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [redirectAttempted, setRedirectAttempted] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string>("");
-
-  // Debug: Log when isLoggingIn changes
-  useEffect(() => {
-    console.log("🔍 LoginScreen: isLoggingIn =", isLoggingIn);
-    console.log("🔍 LoginScreen: pollingStatus =", pollingStatus);
-  }, [isLoggingIn, pollingStatus]);
-
-  // Auto-redirect when user is set
-  useEffect(() => {
-    if (user) {
-      setDebugInfo(`✅ User logged in! ID: ${user.id}, Name: ${user.name}`);
-      console.log("=".repeat(80));
-      console.log("🔄 REDIRECT: User detected, navigating to main");
-      console.log("   User ID:", user.id);
-      console.log("   User Name:", user.name);
-      console.log("=".repeat(80));
-
-      // Navigate to main screen
-      router.replace("/(tabs)/main");
-      console.log("✅ Redirected to /(tabs)/main");
-    }
-  }, [user, router]);
-
-  // Manual redirect function
-  const handleContinue = () => {
-    if (user) {
-      console.log("🔄 Manual redirect triggered");
-      router.replace("/(tabs)/main");
-    }
-  };
-
-  // Test deep link manually
-  const testDeepLink = async () => {
-    const testUrl = "ibtikar://oauth/callback?success=true&user_id=1";
-    Alert.alert(
-      "🧪 Test Deep Link",
-      `This will simulate the OAuth callback.\n\nURL: ${testUrl}\n\nThis helps verify if deep links work.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Test",
-          onPress: async () => {
-            try {
-              const canOpen = await Linking.canOpenURL(testUrl);
-              if (canOpen) {
-                await Linking.openURL(testUrl);
-                Alert.alert("✅ Test Sent", "Deep link test sent. Check if callback is processed.");
-              } else {
-                Alert.alert("❌ Cannot Open", "Deep link scheme not configured properly.");
-              }
-            } catch (e) {
-              Alert.alert("❌ Error", `Failed to open deep link: ${e}`);
-            }
-          },
-        },
-      ]
-    );
-  };
 
   return (
     <LinearGradient
@@ -110,74 +49,6 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>
             Empowerment & Social Entrepreneurship
           </Text>
-
-          {debugInfo ? (
-            <View style={styles.debugContainer}>
-              <Text style={styles.debugText}>{debugInfo}</Text>
-            </View>
-          ) : null}
-          {user ? (
-            <View style={styles.successContainer}>
-              <Text style={styles.successIcon}>✅</Text>
-              <Text style={styles.successText}>Login Successful!</Text>
-              <TouchableOpacity
-                style={styles.continueButton}
-                onPress={handleContinue}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.continueButtonText}>Continue to App</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.loginContainer}>
-              <TouchableOpacity
-                style={[styles.twitterButton, isLoggingIn && styles.twitterButtonDisabled]}
-                onPress={loginWithTwitter}
-                activeOpacity={0.8}
-                disabled={isLoggingIn}
-              >
-                {isLoggingIn ? (
-                  <>
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                    <Text style={styles.buttonText}>Logging in...</Text>
-                  </>
-                ) : (
-                  <>
-                    <Twitter color="#FFFFFF" size={24} strokeWidth={2.5} />
-                    <Text style={styles.buttonText}>Login with Twitter</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-              {isLoggingIn && (
-                <>
-                  <View style={styles.statusContainer}>
-                    <ActivityIndicator size="large" color="#1DA1F2" style={{ marginBottom: 16 }} />
-                    <Text style={styles.pollingText}>
-                      {pollingStatus || "Waiting for authorization..."}
-                    </Text>
-                  </View>
-                  
-                  <TouchableOpacity
-                    style={styles.authorizedButton}
-                    onPress={manualCheckStatus}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.authorizedButtonText}>
-                      ✅ I Authorized - Check Now
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={cancelLogin}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          )}
         </View>
       </View>
     </LinearGradient>
