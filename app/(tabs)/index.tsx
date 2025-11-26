@@ -168,9 +168,13 @@ export default function LoginScreen() {
                     activeOpacity={0.7}
                   >
                     <Text style={styles.authorizedButtonText}>
-                      ✅ I AUTHORIZED ON TWITTER - CHECK NOW
+                      ✅ I Authorized - Check Status
                     </Text>
                   </TouchableOpacity>
+                  
+                  <Text style={styles.helpText}>
+                    If you completed authorization on Twitter, click the green button above.
+                  </Text>
                   
                   <TouchableOpacity
                     style={styles.cancelButton}
@@ -403,5 +407,13 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     letterSpacing: 1,
     textAlign: "center",
+  },
+  helpText: {
+    fontSize: 13,
+    color: "#888888",
+    textAlign: "center",
+    marginTop: 8,
+    paddingHorizontal: 20,
+    lineHeight: 18,
   },
 });
