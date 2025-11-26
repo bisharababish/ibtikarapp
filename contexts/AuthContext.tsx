@@ -185,10 +185,30 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     useEffect(() => {
         if (!isLoggingIn) return;
         
+        let checkCount = 0;
         const checkInterval = setInterval(() => {
-            console.log("⏳ Still logging in... waiting for callback");
+            checkCount++;
+            console.log(`⏳ Still logging in... (${checkCount * 5}s elapsed)`);
             console.log("   If you completed authorization, check your backend logs");
             console.log("   The deep link should trigger automatically");
+            
+            // After 10 seconds, show alert
+            if (checkCount === 2 && Platform.OS !== "web") {
+                Alert.alert(
+                    "⏳ Still Waiting",
+                    "Login is taking longer than expected. The callback should arrive soon.\n\nIf you completed authorization on Twitter, the backend should redirect to the app.",
+                    [{ text: "OK" }]
+                );
+            }
+            
+            // After 20 seconds, suggest checking backend
+            if (checkCount === 4 && Platform.OS !== "web") {
+                Alert.alert(
+                    "⚠️ Taking Too Long",
+                    "The callback hasn't arrived yet. Please:\n\n1. Check Render backend logs\n2. Verify Twitter callback URL matches backend\n3. Try the 'Test Deep Link' button to verify deep links work",
+                    [{ text: "OK" }]
+                );
+            }
         }, 5000);
         
         return () => clearInterval(checkInterval);

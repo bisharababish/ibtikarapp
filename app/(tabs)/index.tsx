@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "expo-router";
-import { Twitter, CheckCircle } from "lucide-react-native";
+import { Twitter, CheckCircle, TestTube } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   View,
@@ -10,6 +10,8 @@ import {
   Dimensions,
   Platform,
   ActivityIndicator,
+  Linking,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -87,6 +89,34 @@ export default function LoginScreen() {
     }
   };
 
+  // Test deep link manually
+  const testDeepLink = async () => {
+    const testUrl = "ibtikar://oauth/callback?success=true&user_id=1";
+    Alert.alert(
+      "🧪 Test Deep Link",
+      `This will simulate the OAuth callback.\n\nURL: ${testUrl}\n\nThis helps verify if deep links work.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Test",
+          onPress: async () => {
+            try {
+              const canOpen = await Linking.canOpenURL(testUrl);
+              if (canOpen) {
+                await Linking.openURL(testUrl);
+                Alert.alert("✅ Test Sent", "Deep link test sent. Check if callback is processed.");
+              } else {
+                Alert.alert("❌ Cannot Open", "Deep link scheme not configured properly.");
+              }
+            } catch (e) {
+              Alert.alert("❌ Error", `Failed to open deep link: ${e}`);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <LinearGradient
       colors={["#000000", "#0a0a0a", "#000000"]}
@@ -152,13 +182,23 @@ export default function LoginScreen() {
                 )}
               </TouchableOpacity>
               {isLoggingIn && (
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={cancelLogin}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={cancelLogin}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.testButton}
+                    onPress={testDeepLink}
+                    activeOpacity={0.8}
+                  >
+                    <TestTube color="#888888" size={16} />
+                    <Text style={styles.testButtonText}>Test Deep Link</Text>
+                  </TouchableOpacity>
+                </>
               )}
             </View>
           )}
@@ -294,6 +334,20 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#888888",
     textDecorationLine: "underline",
+  },
+  testButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
+  testButtonText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#888888",
   },
   debugContainer: {
     width: "100%",
