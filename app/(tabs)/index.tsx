@@ -37,48 +37,25 @@ export default function LoginScreen() {
     if (user) {
       setDebugInfo(`✅ User logged in! ID: ${user.id}, Name: ${user.name}`);
       console.log("=".repeat(80));
-      console.log("🔄 REDIRECT: User detected, attempting redirect");
+      console.log("🔄 REDIRECT: User detected, navigating to home");
       console.log("   User ID:", user.id);
       console.log("   User Name:", user.name);
-      console.log("   Route: /(tabs)/main");
       console.log("=".repeat(80));
       
-      // Try redirect immediately
-      const attemptRedirect = () => {
+      // Navigate to home/main screen
+      try {
+        router.replace('/home');
+        console.log("✅ Redirected to /home");
+      } catch (e) {
+        console.error("❌ Redirect error:", e);
+        // Fallback to main if home doesn't exist
         try {
-          console.log("🔄 Attempting router.replace to /(tabs)/main");
           router.replace("/(tabs)/main");
-          console.log("✅ Redirect command sent");
-        } catch (e) {
-          console.error("❌ Redirect error:", e);
-          // Fallback to push
-          try {
-            console.log("🔄 Fallback: Attempting router.push");
-            router.push("/(tabs)/main");
-          } catch (e2) {
-            console.error("❌ Fallback redirect also failed:", e2);
-          }
+          console.log("✅ Fallback: Redirected to /(tabs)/main");
+        } catch (e2) {
+          console.error("❌ Fallback redirect also failed:", e2);
         }
-      };
-      
-      // Try immediately
-      attemptRedirect();
-      
-      // Also try after delays in case state needs to settle
-      const timeoutId1 = setTimeout(() => {
-        console.log("🔄 Retry redirect after 300ms");
-        attemptRedirect();
-      }, 300);
-      
-      const timeoutId2 = setTimeout(() => {
-        console.log("🔄 Retry redirect after 1000ms");
-        attemptRedirect();
-      }, 1000);
-      
-      return () => {
-        clearTimeout(timeoutId1);
-        clearTimeout(timeoutId2);
-      };
+      }
     }
   }, [user, router]);
 
@@ -87,10 +64,15 @@ export default function LoginScreen() {
     if (user) {
       console.log("🔄 Manual redirect triggered");
       try {
-        router.replace("/(tabs)/main");
+        router.replace('/home');
       } catch (e) {
         console.error("❌ Manual redirect failed:", e);
-        router.push("/(tabs)/main");
+        // Fallback to main
+        try {
+          router.replace("/(tabs)/main");
+        } catch (e2) {
+          router.push("/(tabs)/main");
+        }
       }
     }
   };
