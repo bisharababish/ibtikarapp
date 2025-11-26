@@ -275,14 +275,28 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
             // Open OAuth in app browser
             // On web, use direct redirect instead of popup (popups get blocked)
+            console.log("🔍 Platform check:", Platform.OS);
+            console.log("🔍 Window available:", typeof window !== "undefined");
+            console.log("🔍 Is web:", Platform.OS === "web" || typeof window !== "undefined");
+            
             let result;
-            if (Platform.OS === "web") {
-                console.log("🌐 Web platform: Using direct redirect");
+            // Check if we're on web (either Platform.OS === "web" OR window is available)
+            const isWeb = Platform.OS === "web" || (typeof window !== "undefined" && typeof window.location !== "undefined");
+            
+            if (isWeb) {
+                console.log("🌐 Web platform detected: Using direct redirect");
+                console.log("   OAuth URL:", oauthUrl);
                 // On web, redirect directly - the callback will come back to the same page
-                window.location.href = oauthUrl;
-                // Return early - the redirect will handle the rest
-                return;
+                if (typeof window !== "undefined" && window.location) {
+                    window.location.href = oauthUrl;
+                    // Return early - the redirect will handle the rest
+                    return;
+                } else {
+                    console.error("❌ Window.location not available!");
+                    throw new Error("Window.location not available for web redirect");
+                }
             } else {
+                console.log("📱 Mobile platform: Using auth session");
                 // On mobile, use the auth session
                 result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
             }
