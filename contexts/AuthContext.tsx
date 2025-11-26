@@ -277,9 +277,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             // On web, use direct redirect instead of popup (popups get blocked)
             console.log("🔍 Platform check:", Platform.OS);
             console.log("🔍 Window available:", typeof window !== "undefined");
-            console.log("🔍 Is web:", Platform.OS === "web" || typeof window !== "undefined");
             
-            let result;
             // Check if we're on web (either Platform.OS === "web" OR window is available)
             const isWeb = Platform.OS === "web" || (typeof window !== "undefined" && typeof window.location !== "undefined");
             
@@ -287,18 +285,35 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 console.log("🌐 Web platform detected: Using direct redirect");
                 console.log("   OAuth URL:", oauthUrl);
                 // On web, redirect directly - the callback will come back to the same page
+                // The useEffect hook will detect the URL params and call handleCallback
                 if (typeof window !== "undefined" && window.location) {
                     window.location.href = oauthUrl;
-                    // Return early - the redirect will handle the rest
+                    // Return early - the redirect will handle the rest via URL params
+                    // Don't clear timeout here - let the callback handler do it
                     return;
                 } else {
                     console.error("❌ Window.location not available!");
+                    setIsLoggingIn(false);
                     throw new Error("Window.location not available for web redirect");
                 }
-            } else {
-                console.log("📱 Mobile platform: Using auth session");
-                // On mobile, use the auth session
+            }
+            
+            // MOBILE FLOW: Use auth session
+            console.log("📱 Mobile platform: Using auth session");
+            console.log("   OAuth URL:", oauthUrl);
+            console.log("   Redirect URI:", redirectUri);
+            
+            let result;
+            try {
                 result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
+            } catch (error) {
+                console.error("❌ Error opening auth session:", error);
+                setIsLoggingIn(false);
+                setPollingStatus("");
+                if (Platform.OS !== "web") {
+                    Alert.alert("❌ Error", "Failed to open Twitter login. Please try again.");
+                }
+                return;
             }
             
             clearTimeout(timeoutId);
