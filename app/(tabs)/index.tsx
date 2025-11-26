@@ -187,7 +187,18 @@ export default function LoginScreen() {
                     <View style={styles.pollingContainer}>
                       <Text style={styles.pollingText}>{pollingStatus}</Text>
                     </View>
-                  ) : null}
+                  ) : (
+                    <View style={styles.pollingContainer}>
+                      <Text style={styles.pollingText}>Waiting for authorization...</Text>
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={styles.authorizedButton}
+                    onPress={manualCheckStatus}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.authorizedButtonText}>✅ I've Completed Authorization on Twitter</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.cancelButton}
                     onPress={cancelLogin}
@@ -202,13 +213,6 @@ export default function LoginScreen() {
                   >
                     <TestTube color="#888888" size={16} />
                     <Text style={styles.testButtonText}>Test Deep Link</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.authorizedButton]}
-                    onPress={manualCheckStatus}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.authorizedButtonText}>✅ I've Completed Authorization</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.testButton}
@@ -401,31 +405,32 @@ const styles = StyleSheet.create({
   },
   authorizedButton: {
     backgroundColor: "#10b981",
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 25,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 30,
     width: "100%",
     maxWidth: 320,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
+    marginTop: 12,
+    marginBottom: 8,
     ...Platform.select({
       web: {
-        boxShadow: "0 4px 15px rgba(16, 185, 129, 0.4)",
+        boxShadow: "0 4px 20px rgba(16, 185, 129, 0.5)",
       },
       default: {
         shadowColor: "#10b981",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 10,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.5,
+        shadowRadius: 12,
+        elevation: 10,
       },
     }),
   },
   authorizedButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "700",
     color: "#FFFFFF",
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
 });
