@@ -37,25 +37,14 @@ export default function LoginScreen() {
     if (user) {
       setDebugInfo(`✅ User logged in! ID: ${user.id}, Name: ${user.name}`);
       console.log("=".repeat(80));
-      console.log("🔄 REDIRECT: User detected, navigating to home");
+      console.log("🔄 REDIRECT: User detected, navigating to main");
       console.log("   User ID:", user.id);
       console.log("   User Name:", user.name);
       console.log("=".repeat(80));
       
-      // Navigate to home/main screen
-      try {
-        router.replace('/home');
-        console.log("✅ Redirected to /home");
-      } catch (e) {
-        console.error("❌ Redirect error:", e);
-        // Fallback to main if home doesn't exist
-        try {
-          router.replace("/(tabs)/main");
-          console.log("✅ Fallback: Redirected to /(tabs)/main");
-        } catch (e2) {
-          console.error("❌ Fallback redirect also failed:", e2);
-        }
-      }
+      // Navigate to main screen
+      router.replace("/(tabs)/main");
+      console.log("✅ Redirected to /(tabs)/main");
     }
   }, [user, router]);
 
@@ -63,17 +52,7 @@ export default function LoginScreen() {
   const handleContinue = () => {
     if (user) {
       console.log("🔄 Manual redirect triggered");
-      try {
-        router.replace('/home');
-      } catch (e) {
-        console.error("❌ Manual redirect failed:", e);
-        // Fallback to main
-        try {
-          router.replace("/(tabs)/main");
-        } catch (e2) {
-          router.push("/(tabs)/main");
-        }
-      }
+      router.replace("/(tabs)/main");
     }
   };
 
