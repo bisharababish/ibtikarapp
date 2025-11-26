@@ -115,6 +115,22 @@ export async function getTwitterUser(userId: number = 1) {
   }
 }
 
+export async function checkLinkStatus(userId: number = 1) {
+  const params = new URLSearchParams({ user_id: String(userId) });
+  try {
+    const response = await request<{
+      user_id: number;
+      linked: boolean;
+      scopes?: string;
+    }>(`/v1/me/link-status?${params.toString()}`);
+    console.log("📊 Link status check:", response);
+    return response;
+  } catch (error) {
+    console.error("❌ checkLinkStatus API error:", error);
+    throw error;
+  }
+}
+
 export async function getPosts(userId: number, params?: Record<string, string | number | undefined>) {
   // user_id is required by the backend
   const allParams = {

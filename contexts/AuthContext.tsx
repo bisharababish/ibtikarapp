@@ -1,4 +1,4 @@
-import { getOAuthStartUrl, getTwitterUser } from "@/utils/api";
+import { getOAuthStartUrl, getTwitterUser, checkLinkStatus } from "@/utils/api";
 // @ts-ignore - Package is installed, TypeScript types may not be resolved
 import createContextHook from "@nkzw/create-context-hook";
 // @ts-ignore - Package is installed, TypeScript types may not be resolved
@@ -243,31 +243,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             console.log("   Redirect URI:", redirectUri);
             console.log("   ⚠️ After authorizing, you should be redirected back automatically");
             console.log("   ⚠️ If stuck, the deep link listener will catch the callback");
-            
-            // Show alert with OAuth URL for debugging
-            if (Platform.OS !== "web") {
-                Alert.alert(
-                    "🔗 Opening OAuth",
-                    `Opening: ${oauthUrl.substring(0, 60)}...\n\nAfter authorizing, you should be redirected back.`,
-                    [{ text: "OK" }]
-                );
-            }
 
             // Open OAuth in app browser
-            console.log("🌐 About to open OAuth URL in browser...");
-            let result;
-            try {
-                result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
-                console.log("✅ Browser session opened and closed");
-            } catch (browserError) {
-                console.error("❌ Error opening browser:", browserError);
-                if (Platform.OS !== "web") {
-                    Alert.alert("❌ Browser Error", `Failed to open browser: ${browserError}`);
-                }
-                clearTimeout(timeoutId);
-                setIsLoggingIn(false);
-                return;
-            }
+            const result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
             
             clearTimeout(timeoutId);
             
@@ -279,15 +257,6 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 console.log("   Callback URL:", result.url);
             }
             console.log("=".repeat(80));
-            
-            // Show alert with result for debugging
-            if (Platform.OS !== "web") {
-                Alert.alert(
-                    "📱 OAuth Result",
-                    `Type: ${result.type}\nURL: ${result.url ? "Present" : "Missing"}\n\n${result.url ? result.url.substring(0, 50) + "..." : "No callback URL in result"}`,
-                    [{ text: "OK" }]
-                );
-            }
 
             // Handle result
             if (result.type === "success" && result.url) {
@@ -305,19 +274,70 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                     console.log("   Result type:", result.type);
                     await handleCallback(result.url);
             } else {
-                console.log("⚠️ STEP 5: No URL in result, but deep link listener should catch it");
+                console.log("⚠️ STEP 5: No URL in result - using polling fallback");
                 console.log("   Result type:", result.type);
-                console.log("   Waiting for deep link...");
-                // Show alert that we're waiting for deep link
+                console.log("   Starting polling to check if account is linked...");
+                
+                // Show alert that we're using polling
                 if (Platform.OS !== "web") {
                     Alert.alert(
-                        "⏳ Waiting for Callback",
-                        "OAuth completed but waiting for deep link callback. If you authorized, the callback should arrive soon.",
+                        "⏳ Checking Login Status",
+                        "OAuth completed. Checking if your account is linked...\n\nThis may take a few seconds.",
                         [{ text: "OK" }]
                     );
                 }
-                // Don't set isLoggingIn to false here - let the deep link handler do it
-                // The deep link listener will catch the callback when it arrives
+                
+                // POLLING FALLBACK: Check if account is linked every 2 seconds
+                // This works even if deep links don't work (like in Expo Go)
+                console.log("🔄 Starting polling to check login status...");
+                let pollCount = 0;
+                const maxPolls = 15; // 30 seconds total (15 * 2s)
+                
+                const pollInterval = setInterval(async () => {
+                    pollCount++;
+                    console.log(`📊 Polling attempt ${pollCount}/${maxPolls}...`);
+                    
+                    try {
+                        const linkStatus = await checkLinkStatus(1);
+                        console.log("📊 Link status:", linkStatus);
+                        
+                        if (linkStatus.linked) {
+                            console.log("✅ Account is linked! Processing login...");
+                            clearInterval(pollInterval);
+                            clearTimeout(timeoutId);
+                            
+                            // Process login with user_id 1
+                            await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
+                        } else if (pollCount >= maxPolls) {
+                            console.log("⏰ Polling timeout - account not linked yet");
+                            clearInterval(pollInterval);
+                            clearTimeout(timeoutId);
+                            setIsLoggingIn(false);
+                            
+                            if (Platform.OS !== "web") {
+                                Alert.alert(
+                                    "⚠️ Login Timeout",
+                                    "We couldn't detect that your account was linked. Please try logging in again.",
+                                    [{ text: "OK" }]
+                                );
+                            }
+                        }
+                    } catch (error) {
+                        console.error("❌ Error checking link status:", error);
+                        if (pollCount >= maxPolls) {
+                            clearInterval(pollInterval);
+                            clearTimeout(timeoutId);
+                            setIsLoggingIn(false);
+                        }
+                    }
+                }, 2000); // Check every 2 seconds
+                
+                // Stop polling after max time
+                setTimeout(() => {
+                    clearInterval(pollInterval);
+                }, maxPolls * 2000);
+                
+                // Don't set isLoggingIn to false here - let polling or deep link handler do it
             }
             }
         } catch (error) {
