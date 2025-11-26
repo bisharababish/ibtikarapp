@@ -246,7 +246,18 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             console.log("   ⚠️ If stuck, the deep link listener will catch the callback");
 
             // Open OAuth in app browser
-            const result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
+            // On web, use direct redirect instead of popup (popups get blocked)
+            let result;
+            if (Platform.OS === "web") {
+                console.log("🌐 Web platform: Using direct redirect");
+                // On web, redirect directly - the callback will come back to the same page
+                window.location.href = oauthUrl;
+                // Return early - the redirect will handle the rest
+                return;
+            } else {
+                // On mobile, use the auth session
+                result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
+            }
             
             clearTimeout(timeoutId);
             
