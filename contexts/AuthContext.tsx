@@ -22,7 +22,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
     const [pollingStatus, setPollingStatus] = useState<string>("");
 
-    const redirectUri = "ibtikar://oauth/callback";
+    // Use different redirect URI for web vs mobile
+    const redirectUri = Platform.OS === "web" 
+        ? (typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}` : "http://localhost:8081")
+        : "ibtikar://oauth/callback";
 
     // Handle OAuth callback
     const handleCallback = useCallback(async (url: string) => {
