@@ -1,10 +1,10 @@
-import { getOAuthStartUrl, getTwitterUser, checkLinkStatus } from "@/utils/api";
+import { checkLinkStatus, getOAuthStartUrl, getTwitterUser } from "@/utils/api";
 // @ts-ignore - Package is installed, TypeScript types may not be resolved
 import createContextHook from "@nkzw/create-context-hook";
 // @ts-ignore - Package is installed, TypeScript types may not be resolved
 import * as WebBrowser from "expo-web-browser";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Linking, Alert, Platform } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Linking, Platform } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -22,44 +22,67 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
     const [pollingStatus, setPollingStatus] = useState<string>("");
 
+    // Track if we're processing a callback to prevent duplicates
+    const processingCallback = useRef(false);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     // Use different redirect URI for web vs mobile
-    const redirectUri = Platform.OS === "web" 
+    const redirectUri = Platform.OS === "web"
         ? (typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}` : "http://localhost:8081")
         : "ibtikar://oauth/callback";
 
     // Handle OAuth callback
     const handleCallback = useCallback(async (url: string) => {
+        // Prevent duplicate processing
+        if (processingCallback.current) {
+            console.log("⚠️ Already processing a callback, skipping duplicate");
+            return;
+        }
+
         try {
+            processingCallback.current = true;
+
             console.log("=".repeat(80));
             console.log("🔗 STEP 6: OAuth callback received");
             console.log("   URL:", url);
             console.log("=".repeat(80));
-            
-            // Show alert that callback is being processed
+
+            // Show alert that callback is being processed (mobile only)
             if (Platform.OS !== "web") {
                 Alert.alert("✅ Callback Received", "Processing OAuth callback...");
             }
-            
-            // Parse URL manually (deep links like ibtikar://oauth/callback?success=true&user_id=1)
-            if (!url.startsWith("ibtikar://") || !url.includes("oauth/callback")) {
-                console.log("⚠️ Invalid callback URL format");
-                console.log("   Expected: ibtikar://oauth/callback?...");
-                console.log("   Got:", url);
+
+            // Parse URL - handle both ibtikar:// and web URLs
+            let params: Record<string, string> = {};
+
+            // For ibtikar:// URLs
+            if (url.startsWith("ibtikar://")) {
+                if (!url.includes("oauth/callback")) {
+                    console.log("⚠️ Invalid callback URL format");
+                    return;
+                }
+                const queryString = url.split("?")[1] || "";
+                queryString.split("&").forEach((param) => {
+                    const [key, value] = param.split("=");
+                    if (key && value) {
+                        params[decodeURIComponent(key)] = decodeURIComponent(value);
+                    }
+                });
+            }
+            // For web URLs (http://... or https://...)
+            else if (url.startsWith("http://") || url.startsWith("https://")) {
+                const urlObj = new URL(url);
+                urlObj.searchParams.forEach((value, key) => {
+                    params[key] = value;
+                });
+            }
+            // For direct param objects (from web callback)
+            else {
+                console.log("⚠️ Unexpected URL format:", url);
                 return;
             }
 
             console.log("✅ STEP 7: Valid callback URL format");
-
-            // Extract query string
-            const queryString = url.split("?")[1] || "";
-            const params: Record<string, string> = {};
-            queryString.split("&").forEach((param) => {
-                const [key, value] = param.split("=");
-                if (key && value) {
-                    params[decodeURIComponent(key)] = decodeURIComponent(value);
-                }
-            });
-
             console.log("📋 STEP 8: Parsed callback parameters");
             console.log("   Params:", JSON.stringify(params, null, 2));
 
@@ -124,7 +147,14 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 setIsActive(false);
             }
 
+            // Clear timeout and reset login state
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
             setIsLoggingIn(false);
+            setPollingStatus("");
+
             console.log("=".repeat(80));
             console.log("✅ STEP 13: Login complete!");
             console.log("   User state has been set");
@@ -132,8 +162,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             console.log("   User Name:", userData?.name || `User ${userIdNum}`);
             console.log("   Redirect should happen automatically via useEffect in LoginScreen");
             console.log("=".repeat(80));
-            
-            // Show success alert
+
+            // Show success alert (mobile only)
             if (Platform.OS !== "web") {
                 Alert.alert("✅ Login Successful!", `Welcome ${userData?.name || `User ${userIdNum}`}!`);
             }
@@ -142,52 +172,55 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             console.error("❌ Callback error:", error);
             console.log("=".repeat(80));
             setIsLoggingIn(false);
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
+        } finally {
+            processingCallback.current = false;
         }
     }, []);
 
     // On web, check URL parameters on page load (for OAuth callback)
     useEffect(() => {
+        if (typeof window === "undefined") return;
+
         const checkWebCallback = () => {
-            if (typeof window === "undefined") return;
-            
             const urlParams = new URLSearchParams(window.location.search);
             const success = urlParams.get("success");
             const userId = urlParams.get("user_id");
-            
+
             console.log("🌐 Web: Checking URL params on page load");
             console.log("   Success:", success);
             console.log("   User ID:", userId);
             console.log("   Full URL:", window.location.href);
-            
+
             // Check if we're coming back from OAuth (URL has success/user_id params)
             if (success === "true" && userId) {
-                const callbackUrl = `ibtikar://oauth/callback?success=true&user_id=${userId}`;
                 console.log("🌐 Web: Found OAuth callback params!");
-                console.log("   Constructing callback URL:", callbackUrl);
-                handleCallback(callbackUrl);
-                // Clean up URL after a short delay to ensure callback is processed
-                setTimeout(() => {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }, 1000);
+                console.log("   Processing callback with URL params");
+
+                // Process callback with full URL
+                handleCallback(window.location.href);
+
+                // Clean up URL immediately after processing
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
         };
-        
-        // Check immediately
+
+        // Check on mount and after a short delay (in case params load async)
         checkWebCallback();
-        
-        // Also listen for popstate in case URL changes
-        if (typeof window !== "undefined") {
-            window.addEventListener("popstate", checkWebCallback);
-            return () => {
-                window.removeEventListener("popstate", checkWebCallback);
-            };
-        }
+        const delayedCheck = setTimeout(checkWebCallback, 100);
+
+        return () => clearTimeout(delayedCheck);
     }, [handleCallback]);
 
-    // Listen for deep links
+    // Listen for deep links (mobile)
     useEffect(() => {
+        if (Platform.OS === "web") return; // Skip for web
+
         console.log("🔗 Setting up deep link listeners...");
-        
+
         Linking.getInitialURL().then((url) => {
             if (url) {
                 console.log("=".repeat(80));
@@ -204,17 +237,14 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             console.log("=".repeat(80));
             console.log("🔗 Deep link event received (app already running)");
             console.log("   URL:", event.url);
-            console.log("   This should process the OAuth callback");
             console.log("=".repeat(80));
+
             // Reset login state when deep link is received
             if (event.url.includes("oauth/callback")) {
                 console.log("✅ OAuth callback detected in deep link");
-                // Show alert to confirm deep link was received
                 if (Platform.OS !== "web") {
-                    Alert.alert("🔗 Deep Link Received", `Callback URL: ${event.url.substring(0, 50)}...`);
+                    Alert.alert("🔗 Deep Link Received", `Processing callback...`);
                 }
-                // Reset login state immediately when callback is received
-                setIsLoggingIn(false);
             }
             handleCallback(event.url);
         });
@@ -223,41 +253,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             subscription.remove();
         };
     }, [handleCallback]);
-    
-    // Periodically check if we're stuck in login state (every 5 seconds while logging in)
-    useEffect(() => {
-        if (!isLoggingIn) return;
-        
-        let checkCount = 0;
-        const checkInterval = setInterval(() => {
-            checkCount++;
-            console.log(`⏳ Still logging in... (${checkCount * 5}s elapsed)`);
-            console.log("   If you completed authorization, check your backend logs");
-            console.log("   The deep link should trigger automatically");
-            
-            // After 10 seconds, show alert
-            if (checkCount === 2 && Platform.OS !== "web") {
-                Alert.alert(
-                    "⏳ Still Waiting",
-                    "Login is taking longer than expected. The callback should arrive soon.\n\nIf you completed authorization on Twitter, the backend should redirect to the app.",
-                    [{ text: "OK" }]
-                );
-            }
-            
-            // After 20 seconds, suggest checking backend
-            if (checkCount === 4 && Platform.OS !== "web") {
-                Alert.alert(
-                    "⚠️ Taking Too Long",
-                    "The callback hasn't arrived yet. Please:\n\n1. Check Render backend logs\n2. Verify Twitter callback URL matches backend\n3. Try the 'Test Deep Link' button to verify deep links work",
-                    [{ text: "OK" }]
-                );
-            }
-        }, 5000);
-        
-        return () => clearInterval(checkInterval);
-    }, [isLoggingIn]);
 
-    // Simple login function - works for any Twitter account
+    // Simple login function
     const loginWithTwitter = useCallback(async () => {
         if (isLoggingIn) {
             console.log("⚠️ Login already in progress, ignoring request");
@@ -267,78 +264,69 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         console.log("=".repeat(80));
         console.log("🚀 STEP 1: Starting Twitter login...");
         console.log("=".repeat(80));
-        
-        setIsLoggingIn(true);
 
-        // Set a timeout to reset login state if it takes too long (30 seconds)
-        const timeoutId = setTimeout(() => {
+        setIsLoggingIn(true);
+        setPollingStatus("");
+
+        // Set a timeout to reset login state if it takes too long
+        timeoutRef.current = setTimeout(() => {
             console.log("⏰ Login timeout - resetting login state");
-            console.log("   If you completed authorization, the deep link should still work");
             setIsLoggingIn(false);
+            timeoutRef.current = null;
         }, 30000);
 
         try {
-            // Get OAuth URL from backend (backend handles user creation and uses force_login=true)
+            // Get OAuth URL from backend
             console.log("📡 STEP 2: Getting OAuth URL from backend...");
             const oauthUrl = getOAuthStartUrl("1");
             console.log("✅ OAuth URL received:", oauthUrl);
             console.log("📱 STEP 3: Opening OAuth session in browser...");
             console.log("   Redirect URI:", redirectUri);
-            console.log("   ⚠️ After authorizing, you should be redirected back automatically");
-            console.log("   ⚠️ If stuck, the deep link listener will catch the callback");
 
-            // Open OAuth in app browser
-            // On web, use direct redirect instead of popup (popups get blocked)
-            console.log("🔍 Platform check:", Platform.OS);
-            console.log("🔍 Window available:", typeof window !== "undefined");
-            
-            // Check if we're on web (either Platform.OS === "web" OR window is available)
+            // Check if we're on web
             const isWeb = Platform.OS === "web" || (typeof window !== "undefined" && typeof window.location !== "undefined");
-            
+
             if (isWeb) {
                 console.log("🌐 Web platform detected: Using direct redirect");
                 console.log("   OAuth URL:", oauthUrl);
-                // On web, redirect directly - the callback will come back to the same page
-                // The useEffect hook will detect the URL params and call handleCallback
+
                 if (typeof window !== "undefined" && window.location) {
+                    // IMPORTANT: Don't clear timeout here - let the callback handler do it
                     window.location.href = oauthUrl;
-                    // Return early - the redirect will handle the rest via URL params
-                    // Don't clear timeout here - let the callback handler do it
+                    // Function returns here - callback will be handled by URL params on return
                     return;
                 } else {
                     console.error("❌ Window.location not available!");
+                    if (timeoutRef.current) {
+                        clearTimeout(timeoutRef.current);
+                        timeoutRef.current = null;
+                    }
                     setIsLoggingIn(false);
                     throw new Error("Window.location not available for web redirect");
                 }
             }
-            
+
             // MOBILE FLOW: Use auth session
             console.log("📱 Mobile platform: Using auth session");
-            console.log("   OAuth URL:", oauthUrl);
-            console.log("   Redirect URI:", redirectUri);
-            
+
             let result;
             try {
                 result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
             } catch (error) {
                 console.error("❌ Error opening auth session:", error);
+                if (timeoutRef.current) {
+                    clearTimeout(timeoutRef.current);
+                    timeoutRef.current = null;
+                }
                 setIsLoggingIn(false);
                 setPollingStatus("");
-                if (Platform.OS !== "web") {
-                    Alert.alert("❌ Error", "Failed to open Twitter login. Please try again.");
-                }
+                Alert.alert("❌ Error", "Failed to open Twitter login. Please try again.");
                 return;
             }
-            
-            clearTimeout(timeoutId);
-            
+
             console.log("=".repeat(80));
             console.log("📱 STEP 4: OAuth session result received");
             console.log("   Result type:", result.type);
-            console.log("   URL present:", result.url ? "Yes" : "No");
-            if (result.url) {
-                console.log("   Callback URL:", result.url);
-            }
             console.log("=".repeat(80));
 
             // Handle result
@@ -346,115 +334,74 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 console.log("✅ STEP 5: OAuth success, processing callback...");
                 await handleCallback(result.url);
             } else if (result.type === "cancel" || result.type === "dismiss") {
-                // User cancelled the OAuth flow
                 console.log("❌ STEP 5: User cancelled OAuth");
-                console.log("   Result type:", result.type);
+                if (timeoutRef.current) {
+                    clearTimeout(timeoutRef.current);
+                    timeoutRef.current = null;
+                }
                 setIsLoggingIn(false);
                 setPollingStatus("");
             } else {
-                // Other result types - still try to handle callback if URL exists
-                if (result.url) {
-                    console.log("⚠️ STEP 5: Unexpected result type but URL exists, processing callback...");
-                    console.log("   Result type:", result.type);
-                    await handleCallback(result.url);
-                } else {
-                    // Start polling immediately when OAuth session closes
-                    // This handles the case where user completes OAuth but deep link doesn't work
-                    console.log("⚠️ STEP 5: OAuth session closed - starting immediate polling");
-                    setPollingStatus("Checking if account is linked...");
-                    
-                    // Check immediately
-                    try {
-                        const immediateCheck = await checkLinkStatus(1);
-                        if (immediateCheck.linked) {
-                            console.log("✅ Immediate check: Account is linked!");
-                            clearTimeout(timeoutId);
-                            await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
-                            return;
-                        }
-                    } catch (e) {
-                        console.error("❌ Immediate check failed:", e);
+                // Fallback: Start polling
+                console.log("⚠️ STEP 5: Starting polling fallback...");
+                setPollingStatus("Checking if account is linked...");
+
+                // Check immediately first
+                try {
+                    const immediateCheck = await checkLinkStatus(1);
+                    if (immediateCheck.linked) {
+                        console.log("✅ Immediate check: Account is linked!");
+                        await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
+                        return;
                     }
-                    
-                    // If not linked immediately, start polling
-                    console.log("⚠️ STEP 5: No URL in result - using polling fallback");
-                    console.log("   Result type:", result.type);
-                    console.log("   Starting polling to check if account is linked...");
-                    
-                    // Show alert with instructions
-                    if (Platform.OS !== "web") {
-                        Alert.alert(
-                            "✅ Authorization Complete",
-                            "If you completed authorization on Twitter, click the GREEN BUTTON below.\n\nThe app will check if your account is linked.",
-                            [{ text: "OK" }]
-                        );
-                    }
-                    
-                    // POLLING FALLBACK: Check if account is linked every 1 second (more aggressive)
-                    // This works even if deep links don't work (like in Expo Go)
-                    console.log("🔄 Starting polling to check login status...");
-                    let pollCount = 0;
-                    const maxPolls = 30; // 30 seconds total (30 * 1s)
-                    
-                    const pollInterval = setInterval(async () => {
-                        pollCount++;
-                        const elapsed = pollCount;
-                        const statusMsg = `Checking... (${elapsed}s)`;
-                        setPollingStatus(statusMsg);
-                        console.log(`📊 Polling attempt ${pollCount}/${maxPolls}... (${elapsed}s elapsed)`);
-                        
-                        try {
-                            const linkStatus = await checkLinkStatus(1);
-                            console.log("📊 Link status:", JSON.stringify(linkStatus, null, 2));
-                            
-                            if (linkStatus.linked) {
-                                console.log("✅ Account is linked! Processing login...");
-                                setPollingStatus("✅ Account linked! Logging in...");
-                                clearInterval(pollInterval);
-                                clearTimeout(timeoutId);
-                                
-                                if (Platform.OS !== "web") {
-                                    Alert.alert("✅ Account Linked!", "Your account is linked! Logging you in...");
-                                }
-                                
-                                // Process login with user_id 1
-                                await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
-                            } else {
-                                console.log(`⏳ Account not linked yet (attempt ${pollCount}/${maxPolls})`);
-                                setPollingStatus(`Not linked yet... (${elapsed}s)`);
-                                if (pollCount >= maxPolls) {
-                                    console.log("⏰ Polling timeout - account not linked yet");
-                                    setPollingStatus("❌ Timeout - Click the GREEN BUTTON to check manually");
-                                    clearInterval(pollInterval);
-                                    clearTimeout(timeoutId);
-                                    // Don't set isLoggingIn to false - let user click the button
-                                }
-                            }
-                        } catch (error) {
-                            console.error("❌ Error checking link status:", error);
-                            setPollingStatus(`❌ Error: ${error}`);
-                            if (pollCount >= maxPolls) {
-                                clearInterval(pollInterval);
-                                clearTimeout(timeoutId);
-                                // Don't set isLoggingIn to false - let user try again
-                            }
-                        }
-                    }, 1000); // Check every 1 second (more aggressive)
-                    
-                    // Stop polling after max time
-                    setTimeout(() => {
-                        clearInterval(pollInterval);
-                    }, maxPolls * 1000);
-                    
-                    // Don't set isLoggingIn to false here - let polling or deep link handler do it
+                } catch (e) {
+                    console.error("❌ Immediate check failed:", e);
                 }
+
+                Alert.alert(
+                    "✅ Authorization Complete",
+                    "If you completed authorization, click the GREEN BUTTON to check status.",
+                    [{ text: "OK" }]
+                );
+
+                // Start polling
+                let pollCount = 0;
+                const maxPolls = 30;
+
+                const pollInterval = setInterval(async () => {
+                    pollCount++;
+                    setPollingStatus(`Checking... (${pollCount}s)`);
+
+                    try {
+                        const linkStatus = await checkLinkStatus(1);
+
+                        if (linkStatus.linked) {
+                            console.log("✅ Account is linked! Processing login...");
+                            setPollingStatus("✅ Account linked! Logging in...");
+                            clearInterval(pollInterval);
+                            Alert.alert("✅ Account Linked!", "Logging you in...");
+                            await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
+                        } else if (pollCount >= maxPolls) {
+                            console.log("⏰ Polling timeout");
+                            setPollingStatus("❌ Timeout - Click GREEN BUTTON");
+                            clearInterval(pollInterval);
+                        }
+                    } catch (error) {
+                        console.error("❌ Error checking link status:", error);
+                        if (pollCount >= maxPolls) {
+                            clearInterval(pollInterval);
+                        }
+                    }
+                }, 1000);
             }
         } catch (error) {
-            clearTimeout(timeoutId);
-            console.log("=".repeat(80));
             console.error("❌ Login error:", error);
-            console.log("=".repeat(80));
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
             setIsLoggingIn(false);
+            setPollingStatus("");
         }
     }, [handleCallback, isLoggingIn, redirectUri]);
 
@@ -462,51 +409,48 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         console.log("🚪 Logging out user");
         setUser(null);
         setIsActive(false);
-        setIsLoggingIn(false); // Reset login state on logout
+        setIsLoggingIn(false);
+        setPollingStatus("");
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
     }, []);
-    
+
     const cancelLogin = useCallback(() => {
         console.log("❌ Cancelling login");
         setIsLoggingIn(false);
         setPollingStatus("");
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
     }, []);
-    
+
     const manualCheckStatus = useCallback(async () => {
         console.log("🔍 Manual status check triggered");
         setPollingStatus("Checking...");
-        setIsLoggingIn(true); // Keep login state active
-        
+
         try {
             const linkStatus = await checkLinkStatus(1);
             console.log("📊 Manual check - Link status:", JSON.stringify(linkStatus, null, 2));
-            
+
             if (linkStatus.linked) {
                 setPollingStatus("✅ Account linked! Logging in...");
-                if (Platform.OS !== "web") {
-                    Alert.alert("✅ Account Linked!", "Your account is linked! Logging you in...");
-                }
+                Alert.alert("✅ Account Linked!", "Logging you in...");
                 await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
             } else {
-                setPollingStatus("❌ Not linked - Keep trying or check backend");
-                if (Platform.OS !== "web") {
-                    Alert.alert(
-                        "❌ Not Linked Yet",
-                        "Your account is not linked yet.\n\nPlease:\n1. Make sure you clicked 'Authorize' on Twitter\n2. Check Render logs to see if callback was received\n3. Try again in a few seconds",
-                        [{ text: "OK" }]
-                    );
-                }
-                // Don't set isLoggingIn to false - let user try again
+                setPollingStatus("❌ Not linked yet");
+                Alert.alert(
+                    "❌ Not Linked Yet",
+                    "Make sure you clicked 'Authorize' on Twitter, then try again.",
+                    [{ text: "OK" }]
+                );
             }
         } catch (error) {
             setPollingStatus(`❌ Error: ${error}`);
             console.error("❌ Manual check error:", error);
-            if (Platform.OS !== "web") {
-                Alert.alert(
-                    "❌ Error",
-                    `Failed to check status: ${error}\n\nCheck if backend is accessible.`,
-                    [{ text: "OK" }]
-                );
-            }
+            Alert.alert("❌ Error", `Failed to check status: ${error}`);
         }
     }, [handleCallback]);
 
@@ -529,4 +473,3 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         [user, isActive, isLoggingIn, loginWithTwitter, logout, toggleActive, cancelLogin, pollingStatus, manualCheckStatus]
     );
 });
-
