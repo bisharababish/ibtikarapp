@@ -268,6 +268,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 console.log("❌ STEP 5: User cancelled OAuth");
                 console.log("   Result type:", result.type);
                 setIsLoggingIn(false);
+                setPollingStatus("");
             } else {
                 // Other result types - still try to handle callback if URL exists
                 if (result.url) {
@@ -275,15 +276,34 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                     console.log("   Result type:", result.type);
                     await handleCallback(result.url);
             } else {
+                // Start polling immediately when OAuth session closes
+                // This handles the case where user completes OAuth but deep link doesn't work
+                console.log("⚠️ STEP 5: OAuth session closed - starting immediate polling");
+                setPollingStatus("Checking if account is linked...");
+                
+                // Check immediately
+                try {
+                    const immediateCheck = await checkLinkStatus(1);
+                    if (immediateCheck.linked) {
+                        console.log("✅ Immediate check: Account is linked!");
+                        clearTimeout(timeoutId);
+                        await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
+                        return;
+                    }
+                } catch (e) {
+                    console.error("❌ Immediate check failed:", e);
+                }
+                
+                // If not linked immediately, start polling
                 console.log("⚠️ STEP 5: No URL in result - using polling fallback");
                 console.log("   Result type:", result.type);
                 console.log("   Starting polling to check if account is linked...");
                 
-                // Show alert that we're using polling
+                // Show alert with instructions
                 if (Platform.OS !== "web") {
                     Alert.alert(
-                        "⏳ Checking Login Status",
-                        "OAuth completed. Checking if your account is linked...\n\nThis may take a few seconds.",
+                        "✅ Authorization Complete",
+                        "If you completed authorization on Twitter, click 'I Authorized' below.\n\nThe app will check if your account is linked.",
                         [{ text: "OK" }]
                     );
                 }
@@ -397,6 +417,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const manualCheckStatus = useCallback(async () => {
         console.log("🔍 Manual status check triggered");
         setPollingStatus("Checking...");
+        setIsLoggingIn(true); // Keep login state active
+        
         try {
             const linkStatus = await checkLinkStatus(1);
             console.log("📊 Manual check - Link status:", JSON.stringify(linkStatus, null, 2));
@@ -408,20 +430,25 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 }
                 await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
             } else {
-                setPollingStatus("❌ Account not linked yet");
+                setPollingStatus("❌ Not linked - Keep trying or check backend");
                 if (Platform.OS !== "web") {
                     Alert.alert(
-                        "❌ Not Linked",
-                        "Your account is not linked yet. Please complete the OAuth flow on Twitter.",
+                        "❌ Not Linked Yet",
+                        "Your account is not linked yet.\n\nPlease:\n1. Make sure you clicked 'Authorize' on Twitter\n2. Check Render logs to see if callback was received\n3. Try again in a few seconds",
                         [{ text: "OK" }]
                     );
                 }
+                // Don't set isLoggingIn to false - let user try again
             }
         } catch (error) {
             setPollingStatus(`❌ Error: ${error}`);
             console.error("❌ Manual check error:", error);
             if (Platform.OS !== "web") {
-                Alert.alert("❌ Error", `Failed to check status: ${error}`);
+                Alert.alert(
+                    "❌ Error",
+                    `Failed to check status: ${error}\n\nCheck if backend is accessible.`,
+                    [{ text: "OK" }]
+                );
             }
         }
     }, [handleCallback]);

@@ -204,11 +204,19 @@ export default function LoginScreen() {
                     <Text style={styles.testButtonText}>Test Deep Link</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.testButton, { marginTop: 4 }]}
+                    style={[styles.authorizedButton]}
                     onPress={manualCheckStatus}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.testButtonText}>🔍 Check Status Now</Text>
+                    <Text style={styles.authorizedButtonText}>✅ I've Completed Authorization</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.testButton}
+                    onPress={testDeepLink}
+                    activeOpacity={0.8}
+                  >
+                    <TestTube color="#888888" size={16} />
+                    <Text style={styles.testButtonText}>Test Deep Link</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -390,5 +398,34 @@ const styles = StyleSheet.create({
     color: "#10b981",
     textAlign: "center",
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+  },
+  authorizedButton: {
+    backgroundColor: "#10b981",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    width: "100%",
+    maxWidth: 320,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: "0 4px 15px rgba(16, 185, 129, 0.4)",
+      },
+      default: {
+        shadowColor: "#10b981",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+        elevation: 8,
+      },
+    }),
+  },
+  authorizedButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    letterSpacing: 0.5,
   },
 });
