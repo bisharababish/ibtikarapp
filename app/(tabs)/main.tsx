@@ -68,7 +68,11 @@ export default function MainScreen() {
 
   useEffect(() => {
     if (!user) {
-      router.replace("/");
+      console.log("⚠️ Main screen: No user detected, redirecting to login");
+      router.replace("/(tabs)/");
+    } else {
+      console.log("✅ Main screen: User is logged in, staying on main screen");
+      console.log("   User ID:", user.id);
     }
   }, [user, router]);
 

@@ -26,10 +26,20 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     // Handle OAuth callback
     const handleCallback = useCallback(async (url: string) => {
         try {
+            console.log("=".repeat(80));
+            console.log("🔗 STEP 6: OAuth callback received");
+            console.log("   URL:", url);
+            console.log("=".repeat(80));
+            
             // Parse URL manually (deep links like ibtikar://oauth/callback?success=true&user_id=1)
             if (!url.startsWith("ibtikar://") || !url.includes("oauth/callback")) {
+                console.log("⚠️ Invalid callback URL format");
+                console.log("   Expected: ibtikar://oauth/callback?...");
+                console.log("   Got:", url);
                 return;
             }
+
+            console.log("✅ STEP 7: Valid callback URL format");
 
             // Extract query string
             const queryString = url.split("?")[1] || "";
@@ -41,16 +51,23 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 }
             });
 
+            console.log("📋 STEP 8: Parsed callback parameters");
+            console.log("   Params:", JSON.stringify(params, null, 2));
+
             const success = params.success === "true";
             const userId = params.user_id;
             const error = params.error;
 
             if (error === "access_denied") {
+                console.log("❌ STEP 9: User denied access");
                 setIsLoggingIn(false);
                 return;
             }
 
             if (!success || !userId) {
+                console.log("❌ STEP 9: Callback missing success or user_id");
+                console.log("   Success:", success);
+                console.log("   User ID:", userId);
                 setIsLoggingIn(false);
                 return;
             }
@@ -58,125 +75,197 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             const userIdNum = parseInt(userId || "0", 10);
 
             if (isNaN(userIdNum)) {
+                console.log("❌ STEP 9: Invalid user_id:", userId);
                 setIsLoggingIn(false);
                 return;
             }
+
+            console.log("✅ STEP 9: Callback validated");
+            console.log("   User ID:", userIdNum);
+            console.log("📡 STEP 10: Fetching user data from backend...");
 
             // Get user data
             const response = await getTwitterUser(userIdNum);
             const userData = response?.data;
 
+            console.log("✅ STEP 11: User data received");
+            console.log("   User data:", JSON.stringify(userData, null, 2));
+
             if (userData?.name) {
-                setUser({
+                const newUser = {
                     id: userIdNum,
                     name: userData.name,
                     username: userData.username,
                     email: `${userData.username || `user${userIdNum}`}@twitter.com`,
                     profileImageUrl: userData.profile_image_url,
-                });
+                };
+                console.log("✅ STEP 12: Setting user state");
+                console.log("   User:", JSON.stringify(newUser, null, 2));
+                setUser(newUser);
                 setIsActive(false);
             } else {
-                setUser({
+                const newUser = {
                     id: userIdNum,
                     name: `User ${userIdNum}`,
                     email: `user${userIdNum}@example.com`,
-                });
+                };
+                console.log("✅ STEP 12: Setting user state (fallback)");
+                console.log("   User:", JSON.stringify(newUser, null, 2));
+                setUser(newUser);
                 setIsActive(false);
             }
 
             setIsLoggingIn(false);
+            console.log("=".repeat(80));
+            console.log("✅ STEP 13: Login complete!");
+            console.log("   User state has been set");
+            console.log("   User ID:", userIdNum);
+            console.log("   User Name:", userData?.name || `User ${userIdNum}`);
+            console.log("   Redirect should happen automatically via useEffect in LoginScreen");
+            console.log("=".repeat(80));
         } catch (error) {
-            console.error("Callback error:", error);
+            console.log("=".repeat(80));
+            console.error("❌ Callback error:", error);
+            console.log("=".repeat(80));
             setIsLoggingIn(false);
         }
     }, []);
 
-    // Listen for deep links (handles OAuth callback from backend)
+    // Listen for deep links
     useEffect(() => {
-        // Check for initial URL when app opens
+        console.log("🔗 Setting up deep link listeners...");
+        
         Linking.getInitialURL().then((url) => {
-            if (url && url.startsWith("ibtikar://oauth/callback")) {
-                console.log("🔗 Initial deep link:", url);
+            if (url) {
+                console.log("=".repeat(80));
+                console.log("🔗 Initial deep link detected (app opened via deep link)");
+                console.log("   URL:", url);
+                console.log("=".repeat(80));
                 handleCallback(url);
+            } else {
+                console.log("ℹ️ No initial deep link");
             }
         });
 
-        // Listen for deep links while app is running
         const subscription = Linking.addEventListener("url", (event) => {
-            if (event.url && event.url.startsWith("ibtikar://oauth/callback")) {
-                console.log("🔗 Deep link received:", event.url);
-                handleCallback(event.url);
+            console.log("=".repeat(80));
+            console.log("🔗 Deep link event received (app already running)");
+            console.log("   URL:", event.url);
+            console.log("   This should process the OAuth callback");
+            console.log("=".repeat(80));
+            // Reset login state when deep link is received
+            if (event.url.includes("oauth/callback")) {
+                console.log("✅ OAuth callback detected in deep link");
+                // Reset login state immediately when callback is received
+                setIsLoggingIn(false);
             }
+            handleCallback(event.url);
         });
 
         return () => {
             subscription.remove();
         };
     }, [handleCallback]);
+    
+    // Periodically check if we're stuck in login state (every 5 seconds while logging in)
+    useEffect(() => {
+        if (!isLoggingIn) return;
+        
+        const checkInterval = setInterval(() => {
+            console.log("⏳ Still logging in... waiting for callback");
+            console.log("   If you completed authorization, check your backend logs");
+            console.log("   The deep link should trigger automatically");
+        }, 5000);
+        
+        return () => clearInterval(checkInterval);
+    }, [isLoggingIn]);
 
     // Simple login function - works for any Twitter account
     const loginWithTwitter = useCallback(async () => {
-        if (isLoggingIn) return;
+        if (isLoggingIn) {
+            console.log("⚠️ Login already in progress, ignoring request");
+            return;
+        }
 
+        console.log("=".repeat(80));
+        console.log("🚀 STEP 1: Starting Twitter login...");
+        console.log("=".repeat(80));
+        
         setIsLoggingIn(true);
 
+        // Set a timeout to reset login state if it takes too long (30 seconds)
+        const timeoutId = setTimeout(() => {
+            console.log("⏰ Login timeout - resetting login state");
+            console.log("   If you completed authorization, the deep link should still work");
+            setIsLoggingIn(false);
+        }, 30000);
+
         try {
-            // Step 1: Open Twitter logout to clear session
-            // User needs to click "Log out" button, then we proceed to OAuth
-            try {
-                await WebBrowser.openBrowserAsync("https://twitter.com/logout");
-                // Wait longer (5 seconds) for user to click "Log out" and process
-                await new Promise(resolve => setTimeout(resolve, 5000));
-                await WebBrowser.dismissBrowser();
-            } catch {
-                // Ignore errors, continue to OAuth
-            }
-
-            // Step 2: Get OAuth URL from backend (backend handles user creation)
+            // Get OAuth URL from backend (backend handles user creation and uses force_login=true)
+            console.log("📡 STEP 2: Getting OAuth URL from backend...");
             const oauthUrl = getOAuthStartUrl("1");
+            console.log("✅ OAuth URL received:", oauthUrl);
+            console.log("📱 STEP 3: Opening OAuth session in browser...");
+            console.log("   Redirect URI:", redirectUri);
+            console.log("   ⚠️ After authorizing, you should be redirected back automatically");
+            console.log("   ⚠️ If stuck, the deep link listener will catch the callback");
 
-            // Step 3: Open OAuth in app browser
-            console.log("🔐 Opening OAuth session...");
+            // Open OAuth in app browser
             const result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
-            console.log("🔗 OAuth result:", result.type);
+            
+            clearTimeout(timeoutId);
+            
+            console.log("=".repeat(80));
+            console.log("📱 STEP 4: OAuth session result received");
+            console.log("   Result type:", result.type);
+            console.log("   URL present:", result.url ? "Yes" : "No");
+            if (result.url) {
+                console.log("   Callback URL:", result.url);
+            }
+            console.log("=".repeat(80));
 
             // Handle result
-            if (result.type === "success") {
-                // @ts-ignore - result.url exists when type is "success"
-                const callbackUrl = result.url;
-                console.log("🔗 OAuth callback URL:", callbackUrl?.substring(0, 100));
-
-                if (callbackUrl && callbackUrl.startsWith("ibtikar://")) {
-                    console.log("✅ Got deep link from OAuth");
-                    await handleCallback(callbackUrl);
-                } else {
-                    console.log("⚠️ OAuth completed but no deep link in result");
-                    console.log("ℹ️ Deep link should be caught by listener - check console for '🔗 Deep link received'");
-                    // Deep link should be caught by the listener
-                    // Give it a moment, then reset if nothing happens
-                    setTimeout(() => {
-                        if (isLoggingIn) {
-                            console.log("⚠️ No deep link received after 3 seconds");
-                            setIsLoggingIn(false);
-                        }
-                    }, 3000);
-                }
+            if (result.type === "success" && result.url) {
+                console.log("✅ STEP 5: OAuth success, processing callback...");
+                await handleCallback(result.url);
             } else if (result.type === "cancel" || result.type === "dismiss") {
-                console.log("ℹ️ User cancelled OAuth");
+                // User cancelled the OAuth flow
+                console.log("❌ STEP 5: User cancelled OAuth");
+                console.log("   Result type:", result.type);
                 setIsLoggingIn(false);
             } else {
-                console.log("⚠️ Unexpected OAuth result:", result.type);
-                setIsLoggingIn(false);
+                // Other result types - still try to handle callback if URL exists
+                if (result.url) {
+                    console.log("⚠️ STEP 5: Unexpected result type but URL exists, processing callback...");
+                    console.log("   Result type:", result.type);
+                    await handleCallback(result.url);
+                } else {
+                    console.log("⚠️ STEP 5: No URL in result, but deep link listener should catch it");
+                    console.log("   Result type:", result.type);
+                    console.log("   Waiting for deep link...");
+                    // Don't set isLoggingIn to false here - let the deep link handler do it
+                    // The deep link listener will catch the callback when it arrives
+                }
             }
         } catch (error) {
-            console.error("Login error:", error);
+            clearTimeout(timeoutId);
+            console.log("=".repeat(80));
+            console.error("❌ Login error:", error);
+            console.log("=".repeat(80));
             setIsLoggingIn(false);
         }
     }, [handleCallback, isLoggingIn, redirectUri]);
 
     const logout = useCallback(() => {
+        console.log("🚪 Logging out user");
         setUser(null);
         setIsActive(false);
+        setIsLoggingIn(false); // Reset login state on logout
+    }, []);
+    
+    const cancelLogin = useCallback(() => {
+        console.log("❌ Cancelling login");
+        setIsLoggingIn(false);
     }, []);
 
     const toggleActive = useCallback(() => {
@@ -191,8 +280,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             loginWithTwitter,
             logout,
             toggleActive,
+            cancelLogin,
         }),
-        [user, isActive, isLoggingIn, loginWithTwitter, logout, toggleActive]
+        [user, isActive, isLoggingIn, loginWithTwitter, logout, toggleActive, cancelLogin]
     );
 });
 

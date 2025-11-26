@@ -1,7 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "expo-router";
-import { Twitter } from "lucide-react-native";
-import { useEffect } from "react";
+import { Twitter, CheckCircle } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,15 +18,72 @@ import IbtikarLogo from "@/components/IbtikarLogo";
 const { width } = Dimensions.get("window");
 
 export default function LoginScreen() {
-  const { user, loginWithTwitter, isLoggingIn } = useAuth();
+  const { user, loginWithTwitter, isLoggingIn, cancelLogin } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [redirectAttempted, setRedirectAttempted] = useState(false);
 
+  // Auto-redirect when user is set
   useEffect(() => {
     if (user) {
-      router.replace("/(tabs)/main");
+      console.log("=".repeat(80));
+      console.log("🔄 REDIRECT: User detected, attempting redirect");
+      console.log("   User ID:", user.id);
+      console.log("   User Name:", user.name);
+      console.log("   Route: /(tabs)/main");
+      console.log("=".repeat(80));
+      
+      // Try redirect immediately
+      const attemptRedirect = () => {
+        try {
+          console.log("🔄 Attempting router.replace to /(tabs)/main");
+          router.replace("/(tabs)/main");
+          console.log("✅ Redirect command sent");
+        } catch (e) {
+          console.error("❌ Redirect error:", e);
+          // Fallback to push
+          try {
+            console.log("🔄 Fallback: Attempting router.push");
+            router.push("/(tabs)/main");
+          } catch (e2) {
+            console.error("❌ Fallback redirect also failed:", e2);
+          }
+        }
+      };
+      
+      // Try immediately
+      attemptRedirect();
+      
+      // Also try after delays in case state needs to settle
+      const timeoutId1 = setTimeout(() => {
+        console.log("🔄 Retry redirect after 300ms");
+        attemptRedirect();
+      }, 300);
+      
+      const timeoutId2 = setTimeout(() => {
+        console.log("🔄 Retry redirect after 1000ms");
+        attemptRedirect();
+      }, 1000);
+      
+      return () => {
+        clearTimeout(timeoutId1);
+        clearTimeout(timeoutId2);
+      };
     }
   }, [user, router]);
+
+  // Manual redirect function
+  const handleContinue = () => {
+    if (user) {
+      console.log("🔄 Manual redirect triggered");
+      try {
+        router.replace("/(tabs)/main");
+      } catch (e) {
+        console.error("❌ Manual redirect failed:", e);
+        router.push("/(tabs)/main");
+      }
+    }
+  };
 
   return (
     <LinearGradient
@@ -54,17 +112,49 @@ export default function LoginScreen() {
             Empowerment & Social Entrepreneurship
           </Text>
 
-          <TouchableOpacity
-            style={[styles.twitterButton, isLoggingIn && styles.twitterButtonDisabled]}
-            onPress={loginWithTwitter}
-            activeOpacity={0.8}
-            disabled={isLoggingIn}
-          >
-            <Twitter color="#FFFFFF" size={24} strokeWidth={2.5} />
-            <Text style={styles.buttonText}>
-              {isLoggingIn ? "Logging in..." : "Login with Twitter"}
-            </Text>
-          </TouchableOpacity>
+          {user ? (
+            <View style={styles.successContainer}>
+              <CheckCircle color="#10b981" size={32} />
+              <Text style={styles.successText}>Login Successful!</Text>
+              <TouchableOpacity
+                style={styles.continueButton}
+                onPress={handleContinue}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.continueButtonText}>Continue to App</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.loginContainer}>
+              <TouchableOpacity
+                style={[styles.twitterButton, isLoggingIn && styles.twitterButtonDisabled]}
+                onPress={loginWithTwitter}
+                activeOpacity={0.8}
+                disabled={isLoggingIn}
+              >
+                {isLoggingIn ? (
+                  <>
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                    <Text style={styles.buttonText}>Logging in...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Twitter color="#FFFFFF" size={24} strokeWidth={2.5} />
+                    <Text style={styles.buttonText}>Login with Twitter</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              {isLoggingIn && (
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={cancelLogin}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
       </View>
     </LinearGradient>
@@ -143,5 +233,59 @@ const styles = StyleSheet.create({
   },
   twitterButtonDisabled: {
     opacity: 0.6,
+  },
+  successContainer: {
+    width: "100%",
+    alignItems: "center",
+    gap: 16,
+  },
+  successText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#10b981",
+    textAlign: "center",
+  },
+  continueButton: {
+    backgroundColor: "#10b981",
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    borderRadius: 30,
+    width: "100%",
+    maxWidth: 320,
+    alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({
+      web: {
+        boxShadow: "0 4px 20px rgba(16, 185, 129, 0.4)",
+      },
+      default: {
+        shadowColor: "#10b981",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+        elevation: 8,
+      },
+    }),
+  },
+  continueButtonText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    letterSpacing: 0.5,
+  },
+  loginContainer: {
+    width: "100%",
+    alignItems: "center",
+    gap: 12,
+  },
+  cancelButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#888888",
+    textDecorationLine: "underline",
   },
 });
