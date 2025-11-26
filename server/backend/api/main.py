@@ -1,7 +1,7 @@
 from datetime import datetime
 import time
 
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
@@ -260,6 +260,7 @@ async def x_oauth_callback(
     state: str | None = None,
     error: str | None = None,
     db: Session = Depends(get_db),
+    request: Request = None,
 ):
     print("=" * 80)
     print("🔗 OAuth Callback Received")
