@@ -2,7 +2,7 @@ import IbtikarLogo from "@/components/IbtikarLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Twitter, CheckCircle } from "lucide-react-native";
+import { Twitter } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -118,7 +118,7 @@ export default function LoginScreen() {
           ) : null}
           {user ? (
             <View style={styles.successContainer}>
-              <CheckCircle color="#10b981" size={32} />
+              <Text style={styles.successIcon}>✅</Text>
               <Text style={styles.successText}>Login Successful!</Text>
               <TouchableOpacity
                 style={styles.continueButton}
@@ -270,6 +270,10 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
     gap: 16,
+  },
+  successIcon: {
+    fontSize: 48,
+    marginBottom: 8,
   },
   successText: {
     fontSize: 18,
