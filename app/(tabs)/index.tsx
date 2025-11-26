@@ -22,10 +22,12 @@ export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [redirectAttempted, setRedirectAttempted] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>("");
 
   // Auto-redirect when user is set
   useEffect(() => {
     if (user) {
+      setDebugInfo(`✅ User logged in! ID: ${user.id}, Name: ${user.name}`);
       console.log("=".repeat(80));
       console.log("🔄 REDIRECT: User detected, attempting redirect");
       console.log("   User ID:", user.id);
@@ -112,6 +114,11 @@ export default function LoginScreen() {
             Empowerment & Social Entrepreneurship
           </Text>
 
+          {debugInfo ? (
+            <View style={styles.debugContainer}>
+              <Text style={styles.debugText}>{debugInfo}</Text>
+            </View>
+          ) : null}
           {user ? (
             <View style={styles.successContainer}>
               <CheckCircle color="#10b981" size={32} />
@@ -287,5 +294,20 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#888888",
     textDecorationLine: "underline",
+  },
+  debugContainer: {
+    width: "100%",
+    backgroundColor: "#1a1a1a",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#333333",
+  },
+  debugText: {
+    fontSize: 12,
+    color: "#10b981",
+    textAlign: "center",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
 });

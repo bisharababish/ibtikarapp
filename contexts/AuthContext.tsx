@@ -4,7 +4,7 @@ import createContextHook from "@nkzw/create-context-hook";
 // @ts-ignore - Package is installed, TypeScript types may not be resolved
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Linking } from "react-native";
+import { Linking, Alert, Platform } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -30,6 +30,11 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             console.log("🔗 STEP 6: OAuth callback received");
             console.log("   URL:", url);
             console.log("=".repeat(80));
+            
+            // Show alert that callback is being processed
+            if (Platform.OS !== "web") {
+                Alert.alert("✅ Callback Received", "Processing OAuth callback...");
+            }
             
             // Parse URL manually (deep links like ibtikar://oauth/callback?success=true&user_id=1)
             if (!url.startsWith("ibtikar://") || !url.includes("oauth/callback")) {
@@ -123,6 +128,11 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             console.log("   User Name:", userData?.name || `User ${userIdNum}`);
             console.log("   Redirect should happen automatically via useEffect in LoginScreen");
             console.log("=".repeat(80));
+            
+            // Show success alert
+            if (Platform.OS !== "web") {
+                Alert.alert("✅ Login Successful!", `Welcome ${userData?.name || `User ${userIdNum}`}!`);
+            }
         } catch (error) {
             console.log("=".repeat(80));
             console.error("❌ Callback error:", error);
@@ -156,6 +166,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             // Reset login state when deep link is received
             if (event.url.includes("oauth/callback")) {
                 console.log("✅ OAuth callback detected in deep link");
+                // Show alert to confirm deep link was received
+                if (Platform.OS !== "web") {
+                    Alert.alert("🔗 Deep Link Received", `Callback URL: ${event.url.substring(0, 50)}...`);
+                }
                 // Reset login state immediately when callback is received
                 setIsLoggingIn(false);
             }
@@ -239,13 +253,21 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                     console.log("⚠️ STEP 5: Unexpected result type but URL exists, processing callback...");
                     console.log("   Result type:", result.type);
                     await handleCallback(result.url);
-                } else {
-                    console.log("⚠️ STEP 5: No URL in result, but deep link listener should catch it");
-                    console.log("   Result type:", result.type);
-                    console.log("   Waiting for deep link...");
-                    // Don't set isLoggingIn to false here - let the deep link handler do it
-                    // The deep link listener will catch the callback when it arrives
+            } else {
+                console.log("⚠️ STEP 5: No URL in result, but deep link listener should catch it");
+                console.log("   Result type:", result.type);
+                console.log("   Waiting for deep link...");
+                // Show alert that we're waiting for deep link
+                if (Platform.OS !== "web") {
+                    Alert.alert(
+                        "⏳ Waiting for Callback",
+                        "OAuth completed but waiting for deep link callback. If you authorized, the callback should arrive soon.",
+                        [{ text: "OK" }]
+                    );
                 }
+                // Don't set isLoggingIn to false here - let the deep link handler do it
+                // The deep link listener will catch the callback when it arrives
+            }
             }
         } catch (error) {
             clearTimeout(timeoutId);
