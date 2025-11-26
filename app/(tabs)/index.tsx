@@ -152,36 +152,27 @@ export default function LoginScreen() {
                 <>
                   <View style={styles.statusContainer}>
                     <ActivityIndicator size="large" color="#1DA1F2" style={{ marginBottom: 16 }} />
-                    {pollingStatus ? (
-                      <Text style={styles.pollingText}>{pollingStatus}</Text>
-                    ) : (
-                      <Text style={styles.pollingText}>Waiting for authorization...</Text>
-                    )}
-                    <Text style={styles.instructionText}>
-                      After authorizing on Twitter, click the button below:
+                    <Text style={styles.pollingText}>
+                      {pollingStatus || "Waiting for authorization..."}
                     </Text>
                   </View>
-
+                  
                   <TouchableOpacity
                     style={styles.authorizedButton}
                     onPress={manualCheckStatus}
                     activeOpacity={0.7}
                   >
                     <Text style={styles.authorizedButtonText}>
-                      ✅ I Authorized - Check Status
+                      ✅ I Authorized - Check Now
                     </Text>
                   </TouchableOpacity>
-
-                  <Text style={styles.helpText}>
-                    If you completed authorization on Twitter, click the green button above.
-                  </Text>
-
+                  
                   <TouchableOpacity
                     style={styles.cancelButton}
                     onPress={cancelLogin}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.cancelButtonText}>Cancel Login</Text>
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
                 </>
               )}
