@@ -1,20 +1,6 @@
 import IbtikarLogo from "@/components/IbtikarLogo";
-import { useAuth } from "@/contexts/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { Twitter } from "lucide-react-native";
-import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Linking,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
