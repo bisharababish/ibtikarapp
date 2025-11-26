@@ -142,6 +142,31 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         }
     }, []);
 
+    // On web, check URL parameters on page load (for OAuth callback)
+    useEffect(() => {
+        if (Platform.OS === "web" && typeof window !== "undefined") {
+            const urlParams = new URLSearchParams(window.location.search);
+            const callbackUrl = urlParams.get("callback_url");
+            if (callbackUrl) {
+                console.log("🌐 Web: Found callback URL in query params:", callbackUrl);
+                handleCallback(callbackUrl);
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                // Check if we're coming back from OAuth (URL might have success/user_id params)
+                const success = urlParams.get("success");
+                const userId = urlParams.get("user_id");
+                if (success === "true" && userId) {
+                    const callbackUrl = `ibtikar://oauth/callback?success=true&user_id=${userId}`;
+                    console.log("🌐 Web: Found OAuth callback params, constructing URL:", callbackUrl);
+                    handleCallback(callbackUrl);
+                    // Clean up URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            }
+        }
+    }, [handleCallback]);
+
     // Listen for deep links
     useEffect(() => {
         console.log("🔗 Setting up deep link listeners...");
