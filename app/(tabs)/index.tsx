@@ -183,44 +183,34 @@ export default function LoginScreen() {
               </TouchableOpacity>
               {isLoggingIn && (
                 <>
-                  {pollingStatus ? (
-                    <View style={styles.pollingContainer}>
+                  <View style={styles.statusContainer}>
+                    <ActivityIndicator size="large" color="#1DA1F2" style={{ marginBottom: 16 }} />
+                    {pollingStatus ? (
                       <Text style={styles.pollingText}>{pollingStatus}</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.pollingContainer}>
+                    ) : (
                       <Text style={styles.pollingText}>Waiting for authorization...</Text>
-                    </View>
-                  )}
+                    )}
+                    <Text style={styles.instructionText}>
+                      After authorizing on Twitter, click the button below:
+                    </Text>
+                  </View>
+                  
                   <TouchableOpacity
                     style={styles.authorizedButton}
                     onPress={manualCheckStatus}
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                   >
-                    <Text style={styles.authorizedButtonText}>✅ I've Completed Authorization on Twitter</Text>
+                    <Text style={styles.authorizedButtonText}>
+                      ✅ I AUTHORIZED ON TWITTER - CHECK NOW
+                    </Text>
                   </TouchableOpacity>
+                  
                   <TouchableOpacity
                     style={styles.cancelButton}
                     onPress={cancelLogin}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.testButton}
-                    onPress={testDeepLink}
-                    activeOpacity={0.8}
-                  >
-                    <TestTube color="#888888" size={16} />
-                    <Text style={styles.testButtonText}>Test Deep Link</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.testButton}
-                    onPress={testDeepLink}
-                    activeOpacity={0.8}
-                  >
-                    <TestTube color="#888888" size={16} />
-                    <Text style={styles.testButtonText}>Test Deep Link</Text>
+                    <Text style={styles.cancelButtonText}>Cancel Login</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -403,34 +393,48 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
+  statusContainer: {
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 24,
+    paddingHorizontal: 20,
+  },
+  instructionText: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    textAlign: "center",
+    marginTop: 12,
+    opacity: 0.9,
+  },
   authorizedButton: {
     backgroundColor: "#10b981",
-    paddingVertical: 16,
+    paddingVertical: 20,
     paddingHorizontal: 32,
-    borderRadius: 30,
+    borderRadius: 35,
     width: "100%",
-    maxWidth: 320,
+    maxWidth: 350,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 12,
     ...Platform.select({
       web: {
-        boxShadow: "0 4px 20px rgba(16, 185, 129, 0.5)",
+        boxShadow: "0 6px 25px rgba(16, 185, 129, 0.6)",
       },
       default: {
         shadowColor: "#10b981",
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.5,
-        shadowRadius: 12,
-        elevation: 10,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.6,
+        shadowRadius: 15,
+        elevation: 12,
       },
     }),
   },
   authorizedButtonText: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "800",
     color: "#FFFFFF",
-    letterSpacing: 0.8,
+    letterSpacing: 1,
+    textAlign: "center",
   },
 });

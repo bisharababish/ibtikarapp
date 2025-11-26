@@ -18,14 +18,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ibtikar.app",
-      "infoPlist": {
-        "CFBundleURLTypes": [
-          {
-            "CFBundleURLSchemes": ["ibtikar"]
-          }
-        ]
-      }
+      "bundleIdentifier": "com.ibtikar.app"
     },
     "android": {
       "edgeToEdgeEnabled": true,

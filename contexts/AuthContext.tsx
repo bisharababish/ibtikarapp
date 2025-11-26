@@ -275,122 +275,97 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                     console.log("⚠️ STEP 5: Unexpected result type but URL exists, processing callback...");
                     console.log("   Result type:", result.type);
                     await handleCallback(result.url);
-            } else {
-                // Start polling immediately when OAuth session closes
-                // This handles the case where user completes OAuth but deep link doesn't work
-                console.log("⚠️ STEP 5: OAuth session closed - starting immediate polling");
-                setPollingStatus("Checking if account is linked...");
-                
-                // Check immediately
-                try {
-                    const immediateCheck = await checkLinkStatus(1);
-                    if (immediateCheck.linked) {
-                        console.log("✅ Immediate check: Account is linked!");
-                        clearTimeout(timeoutId);
-                        await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
-                        return;
-                    }
-                } catch (e) {
-                    console.error("❌ Immediate check failed:", e);
-                }
-                
-                // If not linked immediately, start polling
-                console.log("⚠️ STEP 5: No URL in result - using polling fallback");
-                console.log("   Result type:", result.type);
-                console.log("   Starting polling to check if account is linked...");
-                
-                // Show alert with instructions
-                if (Platform.OS !== "web") {
-                    Alert.alert(
-                        "✅ Authorization Complete",
-                        "If you completed authorization on Twitter, click 'I Authorized' below.\n\nThe app will check if your account is linked.",
-                        [{ text: "OK" }]
-                    );
-                }
-                
-                // POLLING FALLBACK: Check if account is linked every 2 seconds
-                // This works even if deep links don't work (like in Expo Go)
-                console.log("🔄 Starting polling to check login status...");
-                let pollCount = 0;
-                const maxPolls = 20; // 40 seconds total (20 * 2s)
-                
-                const pollInterval = setInterval(async () => {
-                    pollCount++;
-                    const elapsed = pollCount * 2;
-                    const statusMsg = `Checking... (${elapsed}s)`;
-                    setPollingStatus(statusMsg);
-                    console.log(`📊 Polling attempt ${pollCount}/${maxPolls}... (${elapsed}s elapsed)`);
+                } else {
+                    // Start polling immediately when OAuth session closes
+                    // This handles the case where user completes OAuth but deep link doesn't work
+                    console.log("⚠️ STEP 5: OAuth session closed - starting immediate polling");
+                    setPollingStatus("Checking if account is linked...");
                     
-                    // Show progress alert every 5 attempts (10 seconds)
-                    if (pollCount % 5 === 0 && Platform.OS !== "web") {
+                    // Check immediately
+                    try {
+                        const immediateCheck = await checkLinkStatus(1);
+                        if (immediateCheck.linked) {
+                            console.log("✅ Immediate check: Account is linked!");
+                            clearTimeout(timeoutId);
+                            await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
+                            return;
+                        }
+                    } catch (e) {
+                        console.error("❌ Immediate check failed:", e);
+                    }
+                    
+                    // If not linked immediately, start polling
+                    console.log("⚠️ STEP 5: No URL in result - using polling fallback");
+                    console.log("   Result type:", result.type);
+                    console.log("   Starting polling to check if account is linked...");
+                    
+                    // Show alert with instructions
+                    if (Platform.OS !== "web") {
                         Alert.alert(
-                            "⏳ Still Checking",
-                            `Checking login status... (${elapsed}s elapsed)\n\nIf you completed authorization, this should detect it soon.`,
+                            "✅ Authorization Complete",
+                            "If you completed authorization on Twitter, click the GREEN BUTTON below.\n\nThe app will check if your account is linked.",
                             [{ text: "OK" }]
                         );
                     }
                     
-                    try {
-                        const linkStatus = await checkLinkStatus(1);
-                        console.log("📊 Link status:", JSON.stringify(linkStatus, null, 2));
+                    // POLLING FALLBACK: Check if account is linked every 1 second (more aggressive)
+                    // This works even if deep links don't work (like in Expo Go)
+                    console.log("🔄 Starting polling to check login status...");
+                    let pollCount = 0;
+                    const maxPolls = 30; // 30 seconds total (30 * 1s)
+                    
+                    const pollInterval = setInterval(async () => {
+                        pollCount++;
+                        const elapsed = pollCount;
+                        const statusMsg = `Checking... (${elapsed}s)`;
+                        setPollingStatus(statusMsg);
+                        console.log(`📊 Polling attempt ${pollCount}/${maxPolls}... (${elapsed}s elapsed)`);
                         
-                        if (linkStatus.linked) {
-                            console.log("✅ Account is linked! Processing login...");
-                            setPollingStatus("✅ Account linked! Logging in...");
-                            clearInterval(pollInterval);
-                            clearTimeout(timeoutId);
+                        try {
+                            const linkStatus = await checkLinkStatus(1);
+                            console.log("📊 Link status:", JSON.stringify(linkStatus, null, 2));
                             
-                            if (Platform.OS !== "web") {
-                                Alert.alert("✅ Account Linked!", "Your account is linked! Logging you in...");
-                            }
-                            
-                            // Process login with user_id 1
-                            await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
-                        } else {
-                            console.log(`⏳ Account not linked yet (attempt ${pollCount}/${maxPolls})`);
-                            setPollingStatus(`Not linked yet... (${elapsed}s)`);
-                            if (pollCount >= maxPolls) {
-                                console.log("⏰ Polling timeout - account not linked yet");
-                                setPollingStatus("❌ Timeout - account not linked");
+                            if (linkStatus.linked) {
+                                console.log("✅ Account is linked! Processing login...");
+                                setPollingStatus("✅ Account linked! Logging in...");
                                 clearInterval(pollInterval);
                                 clearTimeout(timeoutId);
-                                setIsLoggingIn(false);
                                 
                                 if (Platform.OS !== "web") {
-                                    Alert.alert(
-                                        "⚠️ Login Timeout",
-                                        "We couldn't detect that your account was linked after 40 seconds.\n\nPossible issues:\n• Backend callback wasn't reached\n• Twitter didn't redirect properly\n• Check Render logs for errors\n\nPlease try logging in again.",
-                                        [{ text: "OK" }]
-                                    );
+                                    Alert.alert("✅ Account Linked!", "Your account is linked! Logging you in...");
+                                }
+                                
+                                // Process login with user_id 1
+                                await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
+                            } else {
+                                console.log(`⏳ Account not linked yet (attempt ${pollCount}/${maxPolls})`);
+                                setPollingStatus(`Not linked yet... (${elapsed}s)`);
+                                if (pollCount >= maxPolls) {
+                                    console.log("⏰ Polling timeout - account not linked yet");
+                                    setPollingStatus("❌ Timeout - Click the GREEN BUTTON to check manually");
+                                    clearInterval(pollInterval);
+                                    clearTimeout(timeoutId);
+                                    // Don't set isLoggingIn to false - let user click the button
                                 }
                             }
-                        }
-                    } catch (error) {
-                        console.error("❌ Error checking link status:", error);
-                        setPollingStatus(`❌ Error: ${error}`);
-                        if (pollCount >= maxPolls) {
-                            clearInterval(pollInterval);
-                            clearTimeout(timeoutId);
-                            setIsLoggingIn(false);
-                            
-                            if (Platform.OS !== "web") {
-                                Alert.alert(
-                                    "❌ Error",
-                                    `Failed to check login status: ${error}\n\nPlease check your backend connection.`,
-                                    [{ text: "OK" }]
-                                );
+                        } catch (error) {
+                            console.error("❌ Error checking link status:", error);
+                            setPollingStatus(`❌ Error: ${error}`);
+                            if (pollCount >= maxPolls) {
+                                clearInterval(pollInterval);
+                                clearTimeout(timeoutId);
+                                // Don't set isLoggingIn to false - let user try again
                             }
                         }
-                    }
-                }, 2000); // Check every 2 seconds
-                
-                // Stop polling after max time
-                setTimeout(() => {
-                    clearInterval(pollInterval);
-                }, maxPolls * 2000);
-                
-                // Don't set isLoggingIn to false here - let polling or deep link handler do it
-            }
+                    }, 1000); // Check every 1 second (more aggressive)
+                    
+                    // Stop polling after max time
+                    setTimeout(() => {
+                        clearInterval(pollInterval);
+                    }, maxPolls * 1000);
+                    
+                    // Don't set isLoggingIn to false here - let polling or deep link handler do it
+                }
             }
         } catch (error) {
             clearTimeout(timeoutId);
