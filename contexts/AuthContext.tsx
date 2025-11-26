@@ -243,9 +243,31 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             console.log("   Redirect URI:", redirectUri);
             console.log("   ⚠️ After authorizing, you should be redirected back automatically");
             console.log("   ⚠️ If stuck, the deep link listener will catch the callback");
+            
+            // Show alert with OAuth URL for debugging
+            if (Platform.OS !== "web") {
+                Alert.alert(
+                    "🔗 Opening OAuth",
+                    `Opening: ${oauthUrl.substring(0, 60)}...\n\nAfter authorizing, you should be redirected back.`,
+                    [{ text: "OK" }]
+                );
+            }
 
             // Open OAuth in app browser
-            const result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
+            console.log("🌐 About to open OAuth URL in browser...");
+            let result;
+            try {
+                result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
+                console.log("✅ Browser session opened and closed");
+            } catch (browserError) {
+                console.error("❌ Error opening browser:", browserError);
+                if (Platform.OS !== "web") {
+                    Alert.alert("❌ Browser Error", `Failed to open browser: ${browserError}`);
+                }
+                clearTimeout(timeoutId);
+                setIsLoggingIn(false);
+                return;
+            }
             
             clearTimeout(timeoutId);
             
@@ -257,6 +279,15 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 console.log("   Callback URL:", result.url);
             }
             console.log("=".repeat(80));
+            
+            // Show alert with result for debugging
+            if (Platform.OS !== "web") {
+                Alert.alert(
+                    "📱 OAuth Result",
+                    `Type: ${result.type}\nURL: ${result.url ? "Present" : "Missing"}\n\n${result.url ? result.url.substring(0, 50) + "..." : "No callback URL in result"}`,
+                    [{ text: "OK" }]
+                );
+            }
 
             // Handle result
             if (result.type === "success" && result.url) {
