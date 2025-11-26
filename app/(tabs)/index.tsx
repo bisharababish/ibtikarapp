@@ -1,21 +1,21 @@
+import IbtikarLogo from "@/components/IbtikarLogo";
 import { useAuth } from "@/contexts/AuthContext";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Twitter, CheckCircle, TestTube } from "lucide-react-native";
+import { Twitter, CheckCircle } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  Platform,
   ActivityIndicator,
-  Linking,
   Alert,
+  Dimensions,
+  Linking,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import IbtikarLogo from "@/components/IbtikarLogo";
 
 const { width } = Dimensions.get("window");
 
@@ -25,7 +25,7 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const [redirectAttempted, setRedirectAttempted] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
-  
+
   // Debug: Log when isLoggingIn changes
   useEffect(() => {
     console.log("🔍 LoginScreen: isLoggingIn =", isLoggingIn);
@@ -41,7 +41,7 @@ export default function LoginScreen() {
       console.log("   User ID:", user.id);
       console.log("   User Name:", user.name);
       console.log("=".repeat(80));
-      
+
       // Navigate to main screen
       router.replace("/(tabs)/main");
       console.log("✅ Redirected to /(tabs)/main");
@@ -161,7 +161,7 @@ export default function LoginScreen() {
                       After authorizing on Twitter, click the button below:
                     </Text>
                   </View>
-                  
+
                   <TouchableOpacity
                     style={styles.authorizedButton}
                     onPress={manualCheckStatus}
@@ -171,11 +171,11 @@ export default function LoginScreen() {
                       ✅ I Authorized - Check Status
                     </Text>
                   </TouchableOpacity>
-                  
+
                   <Text style={styles.helpText}>
                     If you completed authorization on Twitter, click the green button above.
                   </Text>
-                  
+
                   <TouchableOpacity
                     style={styles.cancelButton}
                     onPress={cancelLogin}
