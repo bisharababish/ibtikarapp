@@ -25,6 +25,12 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const [redirectAttempted, setRedirectAttempted] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
+  
+  // Debug: Log when isLoggingIn changes
+  useEffect(() => {
+    console.log("🔍 LoginScreen: isLoggingIn =", isLoggingIn);
+    console.log("🔍 LoginScreen: pollingStatus =", pollingStatus);
+  }, [isLoggingIn, pollingStatus]);
 
   // Auto-redirect when user is set
   useEffect(() => {
