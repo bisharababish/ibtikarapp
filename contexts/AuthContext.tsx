@@ -147,26 +147,40 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
     // On web, check URL parameters on page load (for OAuth callback)
     useEffect(() => {
-        if (Platform.OS === "web" && typeof window !== "undefined") {
+        const checkWebCallback = () => {
+            if (typeof window === "undefined") return;
+            
             const urlParams = new URLSearchParams(window.location.search);
-            const callbackUrl = urlParams.get("callback_url");
-            if (callbackUrl) {
-                console.log("🌐 Web: Found callback URL in query params:", callbackUrl);
+            const success = urlParams.get("success");
+            const userId = urlParams.get("user_id");
+            
+            console.log("🌐 Web: Checking URL params on page load");
+            console.log("   Success:", success);
+            console.log("   User ID:", userId);
+            console.log("   Full URL:", window.location.href);
+            
+            // Check if we're coming back from OAuth (URL has success/user_id params)
+            if (success === "true" && userId) {
+                const callbackUrl = `ibtikar://oauth/callback?success=true&user_id=${userId}`;
+                console.log("🌐 Web: Found OAuth callback params!");
+                console.log("   Constructing callback URL:", callbackUrl);
                 handleCallback(callbackUrl);
-                // Clean up URL
-                window.history.replaceState({}, document.title, window.location.pathname);
-            } else {
-                // Check if we're coming back from OAuth (URL might have success/user_id params)
-                const success = urlParams.get("success");
-                const userId = urlParams.get("user_id");
-                if (success === "true" && userId) {
-                    const callbackUrl = `ibtikar://oauth/callback?success=true&user_id=${userId}`;
-                    console.log("🌐 Web: Found OAuth callback params, constructing URL:", callbackUrl);
-                    handleCallback(callbackUrl);
-                    // Clean up URL
+                // Clean up URL after a short delay to ensure callback is processed
+                setTimeout(() => {
                     window.history.replaceState({}, document.title, window.location.pathname);
-                }
+                }, 1000);
             }
+        };
+        
+        // Check immediately
+        checkWebCallback();
+        
+        // Also listen for popstate in case URL changes
+        if (typeof window !== "undefined") {
+            window.addEventListener("popstate", checkWebCallback);
+            return () => {
+                window.removeEventListener("popstate", checkWebCallback);
+            };
         }
     }, [handleCallback]);
 
