@@ -20,6 +20,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const [user, setUser] = useState<User | null>(null);
     const [isActive, setIsActive] = useState<boolean>(false);
     const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+    const [pollingStatus, setPollingStatus] = useState<string>("");
 
     const redirectUri = "ibtikar://oauth/callback";
 
@@ -291,43 +292,74 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 // This works even if deep links don't work (like in Expo Go)
                 console.log("🔄 Starting polling to check login status...");
                 let pollCount = 0;
-                const maxPolls = 15; // 30 seconds total (15 * 2s)
+                const maxPolls = 20; // 40 seconds total (20 * 2s)
                 
                 const pollInterval = setInterval(async () => {
                     pollCount++;
-                    console.log(`📊 Polling attempt ${pollCount}/${maxPolls}...`);
+                    const elapsed = pollCount * 2;
+                    const statusMsg = `Checking... (${elapsed}s)`;
+                    setPollingStatus(statusMsg);
+                    console.log(`📊 Polling attempt ${pollCount}/${maxPolls}... (${elapsed}s elapsed)`);
+                    
+                    // Show progress alert every 5 attempts (10 seconds)
+                    if (pollCount % 5 === 0 && Platform.OS !== "web") {
+                        Alert.alert(
+                            "⏳ Still Checking",
+                            `Checking login status... (${elapsed}s elapsed)\n\nIf you completed authorization, this should detect it soon.`,
+                            [{ text: "OK" }]
+                        );
+                    }
                     
                     try {
                         const linkStatus = await checkLinkStatus(1);
-                        console.log("📊 Link status:", linkStatus);
+                        console.log("📊 Link status:", JSON.stringify(linkStatus, null, 2));
                         
                         if (linkStatus.linked) {
                             console.log("✅ Account is linked! Processing login...");
+                            setPollingStatus("✅ Account linked! Logging in...");
                             clearInterval(pollInterval);
                             clearTimeout(timeoutId);
                             
+                            if (Platform.OS !== "web") {
+                                Alert.alert("✅ Account Linked!", "Your account is linked! Logging you in...");
+                            }
+                            
                             // Process login with user_id 1
                             await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
-                        } else if (pollCount >= maxPolls) {
-                            console.log("⏰ Polling timeout - account not linked yet");
+                        } else {
+                            console.log(`⏳ Account not linked yet (attempt ${pollCount}/${maxPolls})`);
+                            setPollingStatus(`Not linked yet... (${elapsed}s)`);
+                            if (pollCount >= maxPolls) {
+                                console.log("⏰ Polling timeout - account not linked yet");
+                                setPollingStatus("❌ Timeout - account not linked");
+                                clearInterval(pollInterval);
+                                clearTimeout(timeoutId);
+                                setIsLoggingIn(false);
+                                
+                                if (Platform.OS !== "web") {
+                                    Alert.alert(
+                                        "⚠️ Login Timeout",
+                                        "We couldn't detect that your account was linked after 40 seconds.\n\nPossible issues:\n• Backend callback wasn't reached\n• Twitter didn't redirect properly\n• Check Render logs for errors\n\nPlease try logging in again.",
+                                        [{ text: "OK" }]
+                                    );
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error("❌ Error checking link status:", error);
+                        setPollingStatus(`❌ Error: ${error}`);
+                        if (pollCount >= maxPolls) {
                             clearInterval(pollInterval);
                             clearTimeout(timeoutId);
                             setIsLoggingIn(false);
                             
                             if (Platform.OS !== "web") {
                                 Alert.alert(
-                                    "⚠️ Login Timeout",
-                                    "We couldn't detect that your account was linked. Please try logging in again.",
+                                    "❌ Error",
+                                    `Failed to check login status: ${error}\n\nPlease check your backend connection.`,
                                     [{ text: "OK" }]
                                 );
                             }
-                        }
-                    } catch (error) {
-                        console.error("❌ Error checking link status:", error);
-                        if (pollCount >= maxPolls) {
-                            clearInterval(pollInterval);
-                            clearTimeout(timeoutId);
-                            setIsLoggingIn(false);
                         }
                     }
                 }, 2000); // Check every 2 seconds
@@ -359,7 +391,40 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const cancelLogin = useCallback(() => {
         console.log("❌ Cancelling login");
         setIsLoggingIn(false);
+        setPollingStatus("");
     }, []);
+    
+    const manualCheckStatus = useCallback(async () => {
+        console.log("🔍 Manual status check triggered");
+        setPollingStatus("Checking...");
+        try {
+            const linkStatus = await checkLinkStatus(1);
+            console.log("📊 Manual check - Link status:", JSON.stringify(linkStatus, null, 2));
+            
+            if (linkStatus.linked) {
+                setPollingStatus("✅ Account linked! Logging in...");
+                if (Platform.OS !== "web") {
+                    Alert.alert("✅ Account Linked!", "Your account is linked! Logging you in...");
+                }
+                await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
+            } else {
+                setPollingStatus("❌ Account not linked yet");
+                if (Platform.OS !== "web") {
+                    Alert.alert(
+                        "❌ Not Linked",
+                        "Your account is not linked yet. Please complete the OAuth flow on Twitter.",
+                        [{ text: "OK" }]
+                    );
+                }
+            }
+        } catch (error) {
+            setPollingStatus(`❌ Error: ${error}`);
+            console.error("❌ Manual check error:", error);
+            if (Platform.OS !== "web") {
+                Alert.alert("❌ Error", `Failed to check status: ${error}`);
+            }
+        }
+    }, [handleCallback]);
 
     const toggleActive = useCallback(() => {
         setIsActive((prev) => !prev);
@@ -374,8 +439,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             logout,
             toggleActive,
             cancelLogin,
+            pollingStatus,
+            manualCheckStatus,
         }),
-        [user, isActive, isLoggingIn, loginWithTwitter, logout, toggleActive, cancelLogin]
+        [user, isActive, isLoggingIn, loginWithTwitter, logout, toggleActive, cancelLogin, pollingStatus, manualCheckStatus]
     );
 });
 

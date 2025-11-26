@@ -20,7 +20,7 @@ import IbtikarLogo from "@/components/IbtikarLogo";
 const { width } = Dimensions.get("window");
 
 export default function LoginScreen() {
-  const { user, loginWithTwitter, isLoggingIn, cancelLogin } = useAuth();
+  const { user, loginWithTwitter, isLoggingIn, cancelLogin, pollingStatus, manualCheckStatus } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [redirectAttempted, setRedirectAttempted] = useState(false);
@@ -183,6 +183,11 @@ export default function LoginScreen() {
               </TouchableOpacity>
               {isLoggingIn && (
                 <>
+                  {pollingStatus ? (
+                    <View style={styles.pollingContainer}>
+                      <Text style={styles.pollingText}>{pollingStatus}</Text>
+                    </View>
+                  ) : null}
                   <TouchableOpacity
                     style={styles.cancelButton}
                     onPress={cancelLogin}
@@ -197,6 +202,13 @@ export default function LoginScreen() {
                   >
                     <TestTube color="#888888" size={16} />
                     <Text style={styles.testButtonText}>Test Deep Link</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.testButton, { marginTop: 4 }]}
+                    onPress={manualCheckStatus}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.testButtonText}>🔍 Check Status Now</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -348,6 +360,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     color: "#888888",
+  },
+  pollingContainer: {
+    width: "100%",
+    backgroundColor: "#1a1a1a",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#333333",
+  },
+  pollingText: {
+    fontSize: 13,
+    color: "#10b981",
+    textAlign: "center",
+    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
   },
   debugContainer: {
     width: "100%",
