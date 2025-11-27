@@ -23,11 +23,11 @@ def build_auth_url(state: str, code_challenge: str) -> str:
         "state": state,
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
-        "prompt": "consent",  # Force authorization screen to show
+        "force_login": "true",  # Force login screen to appear (allows account switching)
     }
     qp = httpx.QueryParams(params)
     auth_url = f"{AUTH_URL}?{qp}"
-    print(f"🔗 Built OAuth URL with prompt=consent")
+    print(f"🔗 Built OAuth URL with force_login=true (allows account switching)")
     print(f"   URL (first 150 chars): {auth_url[:150]}...")
     return auth_url
 

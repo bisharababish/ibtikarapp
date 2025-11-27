@@ -1,3 +1,4 @@
+// Root index - directly render the login screen
 import IbtikarLogo from "@/components/IbtikarLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,52 +16,29 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
-export default function LoginScreen() {
+export default function Index() {
   const insets = useSafeAreaInsets();
   const { user, isLoggingIn, loginWithTwitter, pollingStatus, manualCheckStatus, cancelLogin } = useAuth();
   const router = useRouter();
-
-  // Debug: Log user state changes
-  useEffect(() => {
-    console.log("🔍 LoginScreen - User state changed:", user ? `User ID: ${user.id}, Name: ${user.name}` : "null");
-    console.log("🔍 LoginScreen - isLoggingIn:", isLoggingIn);
-  }, [user, isLoggingIn]);
 
   // Redirect when user is set
   useEffect(() => {
     if (user) {
       console.log("✅ User detected, navigating to main");
       console.log("   User:", JSON.stringify(user, null, 2));
-      console.log("   User ID:", user.id);
-      console.log("   User Name:", user.name);
-      
-      // Use a slightly longer delay to ensure state is fully propagated
+      // Small delay to ensure state is fully updated
       const timer = setTimeout(() => {
-        console.log("🔄 Starting navigation...");
-        console.log("   Current route (if available):", router.pathname || "unknown");
-        
-        // Try multiple navigation methods to ensure it works
-        console.log("   Attempt 1: router.replace('/(tabs)/main')");
-        router.replace("/(tabs)/main");
-        
-        // Backup attempts
-        setTimeout(() => {
-          console.log("   Attempt 2: router.push('/(tabs)/main')");
+        try {
+          console.log("🔄 Attempting navigation to /(tabs)/main");
+          router.replace("/(tabs)/main");
+          console.log("✅ Navigation triggered");
+        } catch (error) {
+          console.error("❌ Navigation error:", error);
+          // Fallback: try push
           router.push("/(tabs)/main");
-        }, 200);
-        
-        setTimeout(() => {
-          console.log("   Attempt 3: router.replace('/main')");
-          router.replace("/main");
-        }, 400);
-      }, 200);
-      
-      return () => {
-        clearTimeout(timer);
-        console.log("🧹 Cleanup: Navigation timer cleared");
-      };
-    } else {
-      console.log("⏳ No user yet, waiting...");
+        }
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [user, router]);
 

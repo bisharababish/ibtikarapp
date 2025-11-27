@@ -1,8 +1,10 @@
-import { getOAuthStartUrl, getTwitterUser, checkLinkStatus } from "@/utils/api";
+import { checkLinkStatus, getOAuthStartUrl, getTwitterUser } from "@/utils/api";
+// @ts-ignore - Package is installed, TypeScript types may not be resolved
 import createContextHook from "@nkzw/create-context-hook";
+// @ts-ignore - Package is installed, TypeScript types may not be resolved
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Linking, Alert, Platform } from "react-native";
+import { Alert, Linking, Platform } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -20,102 +22,50 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
     const [pollingStatus, setPollingStatus] = useState<string>("");
 
-    const redirectUri = Platform.OS === "web" 
-        ? (typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}` : "http://localhost:8081")
-        : "ibtikar://oauth/callback";
-
-    // Simple callback handler
-    const handleCallback = useCallback(async (url: string) => {
+    // Simple function to fetch user data and set it
+    const fetchAndSetUser = useCallback(async (userId: number) => {
         try {
-            console.log("🔗 Processing callback:", url);
-            
-            // Parse URL
-            const urlObj = new URL(url.replace("ibtikar://", "http://"));
-            const success = urlObj.searchParams.get("success") === "true";
-            const userId = urlObj.searchParams.get("user_id");
-            const error = urlObj.searchParams.get("error");
-
-            if (error) {
-                console.log("❌ OAuth error:", error);
-                setIsLoggingIn(false);
-                Alert.alert("❌ Login Failed", `Error: ${error}`);
-                return;
-            }
-
-            if (!success || !userId) {
-                console.log("❌ Missing success or user_id");
-                setIsLoggingIn(false);
-                return;
-            }
-
-            const userIdNum = parseInt(userId, 10);
-            if (isNaN(userIdNum)) {
-                console.log("❌ Invalid user_id");
-                setIsLoggingIn(false);
-                return;
-            }
-
-            console.log("📡 Fetching user data for ID:", userIdNum);
-            const response = await getTwitterUser(userIdNum);
+            console.log("📡 Fetching user data for ID:", userId);
+            const response = await getTwitterUser(userId);
             const userData = response?.data;
 
             if (userData?.name) {
-                setUser({
-                    id: userIdNum,
+                const newUser = {
+                    id: userId,
                     name: userData.name,
                     username: userData.username,
-                    email: `${userData.username || `user${userIdNum}`}@twitter.com`,
+                    email: `${userData.username || `user${userId}`}@twitter.com`,
                     profileImageUrl: userData.profile_image_url,
-                });
+                };
+                console.log("✅ Setting user:", newUser.name);
+                setUser(newUser);
+                setIsActive(false);
+                setIsLoggingIn(false);
+                setPollingStatus("");
+                return true;
             } else {
-                setUser({
-                    id: userIdNum,
-                    name: `User ${userIdNum}`,
-                    email: `user${userIdNum}@example.com`,
-                });
+                const newUser = {
+                    id: userId,
+                    name: `User ${userId}`,
+                    email: `user${userId}@example.com`,
+                };
+                console.log("✅ Setting user (fallback):", newUser.name);
+                setUser(newUser);
+                setIsActive(false);
+                setIsLoggingIn(false);
+                setPollingStatus("");
+                return true;
             }
-
-            setIsLoggingIn(false);
-            setPollingStatus("");
-            setIsActive(false);
-            console.log("✅ Login complete!");
         } catch (error) {
-            console.error("❌ Callback error:", error);
+            console.error("❌ Error fetching user:", error);
             setIsLoggingIn(false);
             setPollingStatus("");
-            Alert.alert("❌ Error", "Failed to complete login. Please try again.");
+            Alert.alert("❌ Error", "Failed to fetch user data. Please try again.");
+            return false;
         }
     }, []);
 
-    // Check URL params on web
-    useEffect(() => {
-        if (Platform.OS === "web" && typeof window !== "undefined") {
-            const params = new URLSearchParams(window.location.search);
-            const success = params.get("success");
-            const userId = params.get("user_id");
-            if (success === "true" && userId) {
-                handleCallback(`ibtikar://oauth/callback?success=true&user_id=${userId}`);
-                window.history.replaceState({}, "", window.location.pathname);
-            }
-        }
-    }, [handleCallback]);
-
-    // Listen for deep links
-    useEffect(() => {
-        const handleDeepLink = (url: string | null) => {
-            if (url && url.includes("oauth/callback")) {
-                console.log("🔗 Deep link received:", url);
-                handleCallback(url);
-            }
-        };
-
-        Linking.getInitialURL().then(handleDeepLink);
-        const subscription = Linking.addEventListener("url", (event) => handleDeepLink(event.url));
-
-        return () => subscription.remove();
-    }, [handleCallback]);
-
-    // Simple login function
+    // Simple login - just open Twitter OAuth
     const loginWithTwitter = useCallback(async () => {
         if (isLoggingIn) return;
 
@@ -127,31 +77,13 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             const oauthUrl = getOAuthStartUrl("1");
             console.log("📡 OAuth URL:", oauthUrl);
 
-            // Web: redirect directly
-            if (Platform.OS === "web" && typeof window !== "undefined") {
-                window.location.href = oauthUrl;
-                return;
-            }
-
-            // Mobile: use auth session
-            const result = await WebBrowser.openAuthSessionAsync(oauthUrl, redirectUri);
-            console.log("🔗 OAuth result:", result.type);
-
-            if (result.type === "success" && result.url) {
-                await handleCallback(result.url);
-            } else if (result.type === "cancel") {
-                console.log("ℹ️ User cancelled");
-                setIsLoggingIn(false);
-                setPollingStatus("");
+            // Open URL - works for both web and mobile
+            const canOpen = await Linking.canOpenURL(oauthUrl);
+            if (canOpen) {
+                await Linking.openURL(oauthUrl);
+                setPollingStatus("Authorize on Twitter, then click the button below");
             } else {
-                // Session closed - wait a bit then show manual check option
-                console.log("⚠️ Session closed, waiting for callback...");
-                setPollingStatus("Waiting for callback...");
-                setTimeout(() => {
-                    if (isLoggingIn) {
-                        setPollingStatus("Click the button below if you authorized");
-                    }
-                }, 3000);
+                throw new Error("Cannot open URL");
             }
         } catch (error) {
             console.error("❌ Login error:", error);
@@ -159,11 +91,11 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             setPollingStatus("");
             Alert.alert("❌ Error", "Failed to open Twitter login. Please try again.");
         }
-    }, [handleCallback, isLoggingIn, redirectUri]);
+    }, [isLoggingIn]);
 
     // Manual check - simple and direct
     const manualCheckStatus = useCallback(async () => {
-        console.log("🔍 Manual check triggered");
+        console.log("🔍 Checking link status...");
         setPollingStatus("Checking...");
 
         try {
@@ -172,13 +104,15 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
             if (linkStatus.linked) {
                 setPollingStatus("✅ Linked! Logging in...");
-                await handleCallback(`ibtikar://oauth/callback?success=true&user_id=1`);
+                const success = await fetchAndSetUser(1);
+                if (success) {
+                    Alert.alert("✅ Success!", "You're logged in!");
+                }
             } else {
                 setPollingStatus("❌ Not linked yet");
                 Alert.alert(
                     "❌ Not Linked",
-                    "Your account is not linked yet.\n\n1. Make sure you clicked 'Authorize' on Twitter\n2. Wait a few seconds\n3. Try again",
-                    [{ text: "OK" }]
+                    "Your account is not linked yet.\n\n1. Make sure you clicked 'Authorize' on Twitter\n2. Wait a few seconds\n3. Try again"
                 );
             }
         } catch (error) {
@@ -186,7 +120,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             setPollingStatus(`❌ Error: ${error}`);
             Alert.alert("❌ Error", `Failed to check status: ${error}`);
         }
-    }, [handleCallback]);
+    }, [fetchAndSetUser]);
 
     const cancelLogin = useCallback(() => {
         console.log("❌ Cancelling login");

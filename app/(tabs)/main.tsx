@@ -22,6 +22,14 @@ export default function MainScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
+  // Redirect to login if no user
+  useEffect(() => {
+    if (!user) {
+      console.log("⚠️ No user, redirecting to login");
+      router.replace("/(tabs)");
+    }
+  }, [user, router]);
+
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
 

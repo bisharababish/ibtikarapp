@@ -25,7 +25,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Login',
-          href: null,
+          // Remove href: null to make route accessible
         }}
       />
       <Tabs.Screen
