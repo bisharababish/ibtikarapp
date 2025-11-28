@@ -289,12 +289,12 @@ async def x_oauth_callback(
 
     code_verifier = state_data["verifier"]
     user_id = int(state_data["user_id"])
-    
+
     print(f"✅ State validated, user_id: {user_id}")
     print("🔄 Exchanging code for token...")
 
     try:
-        token = await exchange_code_for_token(code, code_verifier)
+    token = await exchange_code_for_token(code, code_verifier)
         print("✅ Token exchange successful")
     except Exception as e:
         print(f"❌ Token exchange failed: {e}")

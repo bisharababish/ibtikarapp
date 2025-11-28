@@ -41,7 +41,7 @@ export default function LoginScreen() {
         
         // Try multiple navigation methods to ensure it works
         console.log("   Attempt 1: router.replace('/(tabs)/main')");
-        router.replace("/(tabs)/main");
+      router.replace("/(tabs)/main");
         
         // Backup attempts
         setTimeout(() => {
@@ -109,7 +109,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.cancelButton} onPress={cancelLogin}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+          </TouchableOpacity>
             </View>
           )}
         </View>
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     marginTop: 10,
-  },
+      },
   checkButton: {
     backgroundColor: "#10B981",
     paddingHorizontal: 40,
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     minWidth: 250,
     marginTop: 20,
-  },
+      },
   checkButtonText: {
     color: "#fff",
     fontSize: 18,
