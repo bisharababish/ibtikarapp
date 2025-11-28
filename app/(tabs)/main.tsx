@@ -113,21 +113,22 @@ export default function MainScreen() {
         }
         console.log("Running preview with user_id:", userId, "User object:", user);
         const res = await runPreview(userId);
-        console.log("Preview result:", res);
+        console.log("✅ Preview result:", res);
         // Store analysis summary for display
         if (res) {
           setAnalysisSummary({
-            harmful_count: res.harmful_count,
-            safe_count: res.safe_count,
-            unknown_count: res.unknown_count,
+            harmful_count: res.harmful_count || 0,
+            safe_count: res.safe_count || 0,
+            unknown_count: res.unknown_count || 0,
           });
           console.log("📊 Analysis summary:", res);
+          console.log(`📊 Results: ${res.harmful_count || 0} harmful, ${res.safe_count || 0} safe, ${res.unknown_count || 0} unknown`);
         }
-        // Wait a moment for database to save, then refresh posts
+        // Wait longer for database to save (Space API can take 90s, so wait a bit more)
         setTimeout(() => {
           console.log("🔄 Refreshing posts after analysis...");
           refresh();
-        }, 2000); // Increased to 2 seconds to ensure DB save
+        }, 3000); // Increased to 3 seconds to ensure DB save after long API calls
       } catch (e: any) {
         console.error("Preview error:", e);
         // Try to extract more detailed error message

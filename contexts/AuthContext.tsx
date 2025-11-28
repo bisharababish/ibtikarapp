@@ -93,22 +93,46 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         }
     }, [isLoggingIn]);
 
-    // Manual check - simple and direct
+    // Manual check - with retry logic and direct user fetch fallback
     const manualCheckStatus = useCallback(async () => {
         console.log("🔍 Checking link status...");
         setPollingStatus("Checking...");
 
         try {
-            const linkStatus = await checkLinkStatus(1);
+            // Try checking link status first
+            let linkStatus = await checkLinkStatus(1);
             console.log("📊 Link status:", linkStatus);
+
+            // If not linked, wait a bit and retry (backend might still be processing)
+            if (!linkStatus.linked) {
+                console.log("⏳ Not linked yet, waiting 2 seconds and retrying...");
+                setPollingStatus("Waiting for backend to process...");
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                linkStatus = await checkLinkStatus(1);
+                console.log("📊 Link status (retry):", linkStatus);
+            }
 
             if (linkStatus.linked) {
                 setPollingStatus("✅ Linked! Logging in...");
                 const success = await fetchAndSetUser(1);
                 if (success) {
-                    Alert.alert("✅ Success!", "You're logged in!");
+                    // Don't show alert - navigation will happen automatically
+                    console.log("✅ Login complete via manual check");
                 }
             } else {
+                // Fallback: Try fetching user directly (maybe link check is delayed but user exists)
+                console.log("🔄 Link check says not linked, trying to fetch user directly...");
+                try {
+                    const success = await fetchAndSetUser(1);
+                    if (success) {
+                        console.log("✅ User found via direct fetch!");
+                        return;
+                    }
+                } catch (fetchError) {
+                    console.log("❌ Direct fetch also failed:", fetchError);
+                }
+
                 setPollingStatus("❌ Not linked yet");
                 Alert.alert(
                     "❌ Not Linked",
@@ -117,6 +141,19 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             }
         } catch (error) {
             console.error("❌ Check error:", error);
+            
+            // Fallback: Try fetching user directly even if check failed
+            console.log("🔄 Check failed, trying direct user fetch as fallback...");
+            try {
+                const success = await fetchAndSetUser(1);
+                if (success) {
+                    console.log("✅ User found via fallback fetch!");
+                    return;
+                }
+            } catch (fetchError) {
+                console.log("❌ Fallback fetch also failed:", fetchError);
+            }
+            
             setPollingStatus(`❌ Error: ${error}`);
             Alert.alert("❌ Error", `Failed to check status: ${error}`);
         }
