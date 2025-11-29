@@ -1,8 +1,7 @@
 import { AuthProvider } from "@/contexts/AuthContext";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { useEffect } from "react";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 
 const queryClient = new QueryClient();
 
@@ -16,7 +15,7 @@ export default function RootLayout() {
                     screenOptions={{
                         headerShown: false,
                         contentStyle: {
-                            backgroundColor: colorScheme === "dark" ? "#000000" : "#ffffff",
+                            backgroundColor: "#6366f1", // Colorful purple background
                         },
                     }}
                 >

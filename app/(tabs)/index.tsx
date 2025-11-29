@@ -33,28 +33,28 @@ export default function LoginScreen() {
       console.log("   User:", JSON.stringify(user, null, 2));
       console.log("   User ID:", user.id);
       console.log("   User Name:", user.name);
-      
+
       // Use a slightly longer delay to ensure state is fully propagated
       const timer = setTimeout(() => {
         console.log("🔄 Starting navigation...");
         console.log("   Current route (if available):", router.pathname || "unknown");
-        
+
         // Try multiple navigation methods to ensure it works
         console.log("   Attempt 1: router.replace('/(tabs)/main')");
-      router.replace("/(tabs)/main");
-        
+        router.replace("/(tabs)/main");
+
         // Backup attempts
         setTimeout(() => {
           console.log("   Attempt 2: router.push('/(tabs)/main')");
           router.push("/(tabs)/main");
         }, 200);
-        
+
         setTimeout(() => {
           console.log("   Attempt 3: router.replace('/main')");
           router.replace("/main");
         }, 400);
       }, 200);
-      
+
       return () => {
         clearTimeout(timer);
         console.log("🧹 Cleanup: Navigation timer cleared");
@@ -64,10 +64,16 @@ export default function LoginScreen() {
     }
   }, [user, router]);
 
+  // ALWAYS use colorful gradient - NEVER black!
+  const gradientColors = ["#6366f1", "#8b5cf6", "#a855f7", "#c084fc"] as const;
+
   return (
     <LinearGradient
-      colors={["#000000", "#0a0a0a", "#000000"]}
-      style={styles.container}
+      colors={gradientColors as any}
+      style={[styles.container, { backgroundColor: "#6366f1" }]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      locations={[0, 0.33, 0.66, 1]}
     >
       <View
         style={[
@@ -109,7 +115,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.cancelButton} onPress={cancelLogin}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -121,6 +127,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#6366f1", // Fallback purple color
   },
   content: {
     flex: 1,
@@ -143,37 +150,54 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   title: {
-    fontSize: 34,
-    fontWeight: "700",
+    fontSize: 40,
+    fontWeight: "900",
     color: "#FFFFFF",
     textAlign: "center",
     marginBottom: 8,
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
+    textShadowColor: "rgba(0, 0, 0, 0.7)",
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 8,
   },
   subtitle: {
-    fontSize: 16,
-    fontWeight: "400",
-    color: "#888888",
+    fontSize: 19,
+    fontWeight: "600",
+    color: "#FFFFFF",
     textAlign: "center",
     marginBottom: 24,
-    letterSpacing: 0.3,
+    letterSpacing: 0.8,
+    opacity: 1,
+    textShadowColor: "rgba(0, 0, 0, 0.6)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
   loginButton: {
     backgroundColor: "#1DA1F2",
     paddingHorizontal: 40,
-    paddingVertical: 15,
-    borderRadius: 25,
+    paddingVertical: 18,
+    borderRadius: 30,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     minWidth: 250,
     justifyContent: "center",
     marginTop: 8,
+    shadowColor: "#1DA1F2",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 10,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
   },
   loginButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
+    color: "#FFFFFF",
+    fontSize: 19,
+    fontWeight: "700",
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   loggingInContainer: {
     alignItems: "center",
@@ -181,36 +205,65 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   statusText: {
-    color: "#888",
-    fontSize: 14,
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
     textAlign: "center",
     marginTop: 10,
-      },
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
   checkButton: {
     backgroundColor: "#10B981",
     paddingHorizontal: 40,
-    paddingVertical: 15,
-    borderRadius: 25,
+    paddingVertical: 18,
+    borderRadius: 30,
     minWidth: 250,
     marginTop: 20,
-      },
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 10,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
   checkButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
+    color: "#FFFFFF",
+    fontSize: 19,
+    fontWeight: "700",
     textAlign: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   cancelButton: {
-    backgroundColor: "#374151",
+    backgroundColor: "#6B7280",
     paddingHorizontal: 40,
-    paddingVertical: 12,
-    borderRadius: 25,
+    paddingVertical: 16,
+    borderRadius: 30,
     minWidth: 250,
     marginTop: 10,
+    borderWidth: 1,
+    borderColor: "#9CA3AF",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   cancelButtonText: {
-    color: "#fff",
-    fontSize: 16,
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "600",
     textAlign: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
