@@ -147,6 +147,39 @@ async def delete_account():
     logger.error(f"CWD: {os.getcwd()}, __file__: {__file__}")
     raise HTTPException(status_code=404, detail=f"Delete account page not found. CWD: {os.getcwd()}")
 
+@app.get("/debug/static-paths")
+async def debug_static_paths():
+    """Debug endpoint to check static file paths (remove in production)"""
+    import os
+    from pathlib import Path
+    
+    info = {
+        "cwd": os.getcwd(),
+        "__file__": __file__,
+        "static_dir": str(static_dir) if static_dir else None,
+        "static_dir_exists": static_dir.exists() if static_dir else False,
+        "possible_paths": []
+    }
+    
+    possible_paths = [
+        Path(__file__).parent.parent.parent / "static",
+        Path(os.getcwd()) / "server" / "static",
+        Path(os.getcwd()) / "static",
+        Path("server/static"),
+        Path("static"),
+    ]
+    
+    for path in possible_paths:
+        info["possible_paths"].append({
+            "path": str(path),
+            "absolute": str(path.absolute()),
+            "exists": path.exists(),
+            "has_privacy": (path / "privacy-policy.html").exists() if path.exists() else False,
+            "has_delete": (path / "delete-account.html").exists() if path.exists() else False,
+        })
+    
+    return info
+
 # ---------- Analysis read endpoints ----------
 
 @app.get("/v1/analysis/posts", response_model=AnalysisPostsResponse)
