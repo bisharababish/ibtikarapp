@@ -2,7 +2,9 @@ from datetime import datetime
 import time
 
 from fastapi import FastAPI, Depends, HTTPException, Query, Request
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 
@@ -63,6 +65,38 @@ class AuthorSummaryResponse(BaseModel):
 
 app = FastAPI(title="IbtikarAI Backend", version="0.2.0")
 init_db()  # create tables on startup (local dev)
+
+# ---------- Static files for Play Console documentation ----------
+# Get the path to the static directory (server/static)
+# Try multiple possible paths to handle different deployment scenarios
+_base_path = Path(__file__).parent.parent.parent  # server/backend/api -> server/
+static_dir = _base_path / "static"
+
+# Fallback: if not found, try relative to current working directory
+if not static_dir.exists():
+    static_dir = Path("server/static")
+if not static_dir.exists():
+    static_dir = Path("static")
+
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+# Direct routes for easy access (for Play Console)
+@app.get("/privacy-policy.html")
+async def privacy_policy():
+    """Privacy Policy page for Google Play Console"""
+    static_file = static_dir / "privacy-policy.html"
+    if static_file.exists():
+        return FileResponse(static_file, media_type="text/html")
+    raise HTTPException(status_code=404, detail=f"Privacy policy not found at {static_file}")
+
+@app.get("/delete-account.html")
+async def delete_account():
+    """Delete Account page for Google Play Console"""
+    static_file = static_dir / "delete-account.html"
+    if static_file.exists():
+        return FileResponse(static_file, media_type="text/html")
+    raise HTTPException(status_code=404, detail=f"Delete account page not found at {static_file}")
 
 # ---------- Analysis read endpoints ----------
 

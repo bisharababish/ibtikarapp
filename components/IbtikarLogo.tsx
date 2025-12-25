@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet, ViewStyle, Platform, Image, ImageSourcePropType } from 'react-native';
 import { IbtikarColors } from '@/constants/theme';
+import React from 'react';
+import { Image, ImageSourcePropType, Platform, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 interface IbtikarLogoProps {
     size?: number;

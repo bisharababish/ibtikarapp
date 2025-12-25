@@ -33,28 +33,28 @@ export default function LoginScreen() {
       console.log("   User:", JSON.stringify(user, null, 2));
       console.log("   User ID:", user.id);
       console.log("   User Name:", user.name);
-      
+
       // Use a slightly longer delay to ensure state is fully propagated
       const timer = setTimeout(() => {
         console.log("🔄 Starting navigation...");
         console.log("   Current route (if available):", router.pathname || "unknown");
-        
+
         // Try multiple navigation methods to ensure it works
         console.log("   Attempt 1: router.replace('/(tabs)/main')");
-      router.replace("/(tabs)/main");
-        
+        router.replace("/(tabs)/main");
+
         // Backup attempts
         setTimeout(() => {
           console.log("   Attempt 2: router.push('/(tabs)/main')");
           router.push("/(tabs)/main");
         }, 200);
-        
+
         setTimeout(() => {
           console.log("   Attempt 3: router.replace('/main')");
           router.replace("/main");
         }, 400);
       }, 200);
-      
+
       return () => {
         clearTimeout(timer);
         console.log("🧹 Cleanup: Navigation timer cleared");
@@ -64,10 +64,16 @@ export default function LoginScreen() {
     }
   }, [user, router]);
 
+  // Official Ibtikar gradient: Yellow -> Teal -> Black
+  const gradientColors = ["#F6DE55", "#00A3A3", "#000000"] as const;
+
   return (
     <LinearGradient
-      colors={["#000000", "#0a0a0a", "#000000"]}
-      style={styles.container}
+      colors={gradientColors as any}
+      style={[styles.container, { backgroundColor: "#F6DE55" }]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      locations={[0, 0.5, 1]}
     >
       <View
         style={[
@@ -109,7 +115,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.cancelButton} onPress={cancelLogin}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -121,6 +127,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F6DE55", // Fallback Ibtikar Yellow
   },
   content: {
     flex: 1,
@@ -143,37 +150,54 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   title: {
-    fontSize: 34,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontSize: 40,
+    fontWeight: "900",
+    color: "#000000",
     textAlign: "center",
     marginBottom: 8,
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
+    textShadowColor: "rgba(255, 255, 255, 0.5)",
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 6,
   },
   subtitle: {
-    fontSize: 16,
-    fontWeight: "400",
-    color: "#888888",
+    fontSize: 19,
+    fontWeight: "600",
+    color: "#000000",
     textAlign: "center",
     marginBottom: 24,
-    letterSpacing: 0.3,
+    letterSpacing: 0.8,
+    opacity: 0.9,
+    textShadowColor: "rgba(255, 255, 255, 0.4)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   loginButton: {
-    backgroundColor: "#1DA1F2",
-    paddingHorizontal: 40,
-    paddingVertical: 15,
-    borderRadius: 25,
+    backgroundColor: "#00A3A3",
+    paddingHorizontal: 44,
+    paddingVertical: 20,
+    borderRadius: 32,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    minWidth: 250,
+    gap: 12,
+    minWidth: 260,
     justifyContent: "center",
     marginTop: 8,
+    shadowColor: "#00A3A3",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 2.5,
+    borderColor: "#000000",
   },
   loginButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
+    color: "#FFFFFF",
+    fontSize: 19,
+    fontWeight: "700",
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   loggingInContainer: {
     alignItems: "center",
@@ -181,36 +205,65 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   statusText: {
-    color: "#888",
-    fontSize: 14,
-    textAlign: "center",
-    marginTop: 10,
-      },
-  checkButton: {
-    backgroundColor: "#10B981",
-    paddingHorizontal: 40,
-    paddingVertical: 15,
-    borderRadius: 25,
-    minWidth: 250,
-    marginTop: 20,
-      },
-  checkButtonText: {
-    color: "#fff",
-    fontSize: 18,
+    color: "#000000",
+    fontSize: 15,
     fontWeight: "600",
     textAlign: "center",
+    marginTop: 10,
+    textShadowColor: "rgba(255, 255, 255, 0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  checkButton: {
+    backgroundColor: "#38B000",
+    paddingHorizontal: 44,
+    paddingVertical: 20,
+    borderRadius: 32,
+    minWidth: 260,
+    marginTop: 20,
+    shadowColor: "#38B000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 2.5,
+    borderColor: "#000000",
+  },
+  checkButtonText: {
+    color: "#FFFFFF",
+    fontSize: 19,
+    fontWeight: "700",
+    textAlign: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   cancelButton: {
-    backgroundColor: "#374151",
-    paddingHorizontal: 40,
-    paddingVertical: 12,
-    borderRadius: 25,
-    minWidth: 250,
+    backgroundColor: "#AAAAAA",
+    paddingHorizontal: 44,
+    paddingVertical: 18,
+    borderRadius: 32,
+    minWidth: 260,
     marginTop: 10,
+    borderWidth: 1.5,
+    borderColor: "#E5E5E5",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   cancelButtonText: {
-    color: "#fff",
-    fontSize: 16,
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "600",
     textAlign: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });

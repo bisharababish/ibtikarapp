@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import { X } from "lucide-react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function Modal() {
   return (
@@ -8,7 +8,7 @@ export default function Modal() {
       <View style={styles.header}>
         <Text style={styles.title}>Modal</Text>
         <TouchableOpacity onPress={() => router.back()}>
-          <X color="#FFFFFF" size={24} />
+          <X color="#000000" size={24} />
         </TouchableOpacity>
       </View>
       <Text style={styles.text}>This is a modal screen!</Text>
@@ -22,7 +22,7 @@ export default function Modal() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000000",
+    backgroundColor: "#FAFAFA",
     padding: 24,
   },
   header: {
@@ -34,15 +34,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#000000",
   },
   text: {
     fontSize: 16,
-    color: "#FFFFFF",
+    color: "#000000",
     marginBottom: 24,
   },
   button: {
-    backgroundColor: "#1DA1F2",
+    backgroundColor: "#00A3A3",
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,

@@ -22,6 +22,13 @@ async function request<T>(
     const text = await res.text().catch(() => "");
     let errorMessage = `HTTP ${res.status} ${res.statusText}`;
 
+    // Handle specific HTTP error codes with better messages
+    if (res.status === 520) {
+      errorMessage = "HTTP 520 - Server connection error. The backend server is currently unavailable.";
+    } else if (res.status === 502 || res.status === 503 || res.status === 504) {
+      errorMessage = `HTTP ${res.status} - Service temporarily unavailable.`;
+    }
+
     // Try to parse JSON error details
     try {
       const errorJson = JSON.parse(text);
@@ -40,11 +47,29 @@ async function request<T>(
           errorMessage += ` - ${JSON.stringify(errorJson.detail)}`;
         }
       } else {
-        errorMessage += ` - ${text}`;
+        // For HTML error pages (like Cloudflare 520), don't include the full HTML
+        if (text.includes("<!DOCTYPE html>") || text.includes("<html")) {
+          // Already set a user-friendly message above for 520
+          if (res.status !== 520) {
+            errorMessage += " - Server returned an error page";
+          }
+        } else {
+          errorMessage += ` - ${text.substring(0, 200)}`; // Limit error text length
+        }
       }
     } catch {
-      // Not JSON, use raw text
-      errorMessage += ` - ${text}`;
+      // Not JSON, check if it's HTML
+      if (text.includes("<!DOCTYPE html>") || text.includes("<html")) {
+        // For HTML error pages, don't include the full HTML in the error
+        if (res.status === 520) {
+          // Already set message above
+        } else {
+          errorMessage += " - Server returned an error page";
+        }
+      } else {
+        // Use raw text but limit length
+        errorMessage += ` - ${text.substring(0, 200)}`;
+      }
     }
 
     throw new Error(errorMessage);
@@ -101,6 +126,7 @@ export async function getTwitterUser(userId: number = 1) {
     const response = await request<{
       data?: { id: string; name: string; username: string; profile_image_url?: string };
       rate_limited?: boolean;
+      cached?: boolean;
       resource?: string;
       reset?: string;
       limit?: string;
