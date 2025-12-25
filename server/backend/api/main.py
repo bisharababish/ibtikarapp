@@ -69,14 +69,23 @@ init_db()  # create tables on startup (local dev)
 # ---------- Static files for Play Console documentation ----------
 # Get the path to the static directory (server/static)
 # Try multiple possible paths to handle different deployment scenarios
+import os
 _base_path = Path(__file__).parent.parent.parent  # server/backend/api -> server/
 static_dir = _base_path / "static"
 
 # Fallback: if not found, try relative to current working directory
 if not static_dir.exists():
-    static_dir = Path("server/static")
-if not static_dir.exists():
-    static_dir = Path("static")
+    # Try from current working directory
+    cwd = Path(os.getcwd())
+    if (cwd / "server" / "static").exists():
+        static_dir = cwd / "server" / "static"
+    elif (cwd / "static").exists():
+        static_dir = cwd / "static"
+    else:
+        # Last resort: try relative paths
+        static_dir = Path("server/static")
+        if not static_dir.exists():
+            static_dir = Path("static")
 
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
