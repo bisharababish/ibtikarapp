@@ -70,42 +70,82 @@ init_db()  # create tables on startup (local dev)
 # Get the path to the static directory (server/static)
 # Try multiple possible paths to handle different deployment scenarios
 import os
-_base_path = Path(__file__).parent.parent.parent  # server/backend/api -> server/
-static_dir = _base_path / "static"
+import logging
 
-# Fallback: if not found, try relative to current working directory
-if not static_dir.exists():
-    # Try from current working directory
-    cwd = Path(os.getcwd())
-    if (cwd / "server" / "static").exists():
-        static_dir = cwd / "server" / "static"
-    elif (cwd / "static").exists():
-        static_dir = cwd / "static"
-    else:
-        # Last resort: try relative paths
-        static_dir = Path("server/static")
-        if not static_dir.exists():
-            static_dir = Path("static")
+logger = logging.getLogger(__name__)
 
-if static_dir.exists():
+# Try multiple paths in order of likelihood
+possible_paths = [
+    # Path relative to this file (most common)
+    Path(__file__).parent.parent.parent / "static",  # server/backend/api -> server/static
+    # Paths relative to current working directory
+    Path(os.getcwd()) / "server" / "static",
+    Path(os.getcwd()) / "static",
+    # Absolute paths from common Render structures
+    Path("/opt/render/project/src/server/static"),
+    Path("/app/server/static"),
+    # Relative paths as last resort
+    Path("server/static"),
+    Path("static"),
+]
+
+static_dir = None
+for path in possible_paths:
+    if path.exists() and (path / "privacy-policy.html").exists():
+        static_dir = path
+        logger.info(f"Found static directory at: {static_dir.absolute()}")
+        break
+
+if static_dir and static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+    logger.info(f"Mounted static files from: {static_dir.absolute()}")
+else:
+    logger.warning(f"Static directory not found! Tried paths: {[str(p) for p in possible_paths]}")
+    logger.warning(f"Current working directory: {os.getcwd()}")
+    logger.warning(f"__file__ location: {__file__}")
+    # Create a dummy static_dir to prevent errors
+    static_dir = Path(__file__).parent.parent.parent / "static"
 
 # Direct routes for easy access (for Play Console)
 @app.get("/privacy-policy.html")
 async def privacy_policy():
     """Privacy Policy page for Google Play Console"""
-    static_file = static_dir / "privacy-policy.html"
-    if static_file.exists():
-        return FileResponse(static_file, media_type="text/html")
-    raise HTTPException(status_code=404, detail=f"Privacy policy not found at {static_file}")
+    # Try multiple possible locations
+    possible_files = [
+        static_dir / "privacy-policy.html",
+        Path(os.getcwd()) / "server" / "static" / "privacy-policy.html",
+        Path(os.getcwd()) / "static" / "privacy-policy.html",
+        Path(__file__).parent.parent.parent / "static" / "privacy-policy.html",
+    ]
+    
+    for file_path in possible_files:
+        if file_path.exists():
+            logger.info(f"Serving privacy-policy.html from: {file_path.absolute()}")
+            return FileResponse(file_path, media_type="text/html")
+    
+    logger.error(f"Privacy policy not found! Tried: {[str(p) for p in possible_files]}")
+    logger.error(f"CWD: {os.getcwd()}, __file__: {__file__}")
+    raise HTTPException(status_code=404, detail=f"Privacy policy not found. CWD: {os.getcwd()}")
 
 @app.get("/delete-account.html")
 async def delete_account():
     """Delete Account page for Google Play Console"""
-    static_file = static_dir / "delete-account.html"
-    if static_file.exists():
-        return FileResponse(static_file, media_type="text/html")
-    raise HTTPException(status_code=404, detail=f"Delete account page not found at {static_file}")
+    # Try multiple possible locations
+    possible_files = [
+        static_dir / "delete-account.html",
+        Path(os.getcwd()) / "server" / "static" / "delete-account.html",
+        Path(os.getcwd()) / "static" / "delete-account.html",
+        Path(__file__).parent.parent.parent / "static" / "delete-account.html",
+    ]
+    
+    for file_path in possible_files:
+        if file_path.exists():
+            logger.info(f"Serving delete-account.html from: {file_path.absolute()}")
+            return FileResponse(file_path, media_type="text/html")
+    
+    logger.error(f"Delete account page not found! Tried: {[str(p) for p in possible_files]}")
+    logger.error(f"CWD: {os.getcwd()}, __file__: {__file__}")
+    raise HTTPException(status_code=404, detail=f"Delete account page not found. CWD: {os.getcwd()}")
 
 # ---------- Analysis read endpoints ----------
 
