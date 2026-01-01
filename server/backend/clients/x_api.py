@@ -3,9 +3,9 @@ from typing import Dict, Any
 import httpx
 from sqlalchemy.orm import Session
 
-from backend.db.models import XToken
-from backend.core.crypto import dec, enc
-from backend.core.config import settings
+from ..db.models import XToken
+from ..core.crypto import dec, enc
+from ..core.config import settings
 
 API = "https://api.twitter.com/2"
 

@@ -1,7 +1,7 @@
 from typing import List, Dict
 
 import httpx
-from backend.core.config import settings
+from ..core.config import settings
 
 
 BAD_LOCAL = ["hate", "kys", "die", "kill", "dumb", "trash", "terror"]
