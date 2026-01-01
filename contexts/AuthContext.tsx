@@ -3,8 +3,8 @@ import { checkLinkStatus, getOAuthStartUrl, getTwitterUser } from "@/utils/api";
 import createContextHook from "@nkzw/create-context-hook";
 // @ts-ignore - Package is installed, TypeScript types may not be resolved
 import * as WebBrowser from "expo-web-browser";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Linking, Platform } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { Alert, Linking } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 

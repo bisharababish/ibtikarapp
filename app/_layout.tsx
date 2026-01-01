@@ -15,7 +15,7 @@ export default function RootLayout() {
                     screenOptions={{
                         headerShown: false,
                         contentStyle: {
-                            backgroundColor: "#6366f1", // Colorful purple background
+                            backgroundColor: "#FAFAFA", // Ibtikar background color
                         },
                     }}
                 >

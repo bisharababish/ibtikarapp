@@ -1,7 +1,7 @@
+import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Tabs } from 'expo-router';
 import { User } from 'lucide-react-native';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -13,12 +13,12 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: user ? {
-          backgroundColor: isDark ? '#000000' : '#ffffff',
-          borderTopColor: isDark ? '#1a1a1a' : '#e5e5e5',
+          backgroundColor: isDark ? '#000000' : '#FFFFFF',
+          borderTopColor: isDark ? '#333333' : '#E5E5E5',
           borderTopWidth: 1,
         } : { display: 'none' },
-        tabBarActiveTintColor: '#1DA1F2',
-        tabBarInactiveTintColor: isDark ? '#666666' : '#999999',
+        tabBarActiveTintColor: '#00A3A3',
+        tabBarInactiveTintColor: isDark ? '#AAAAAA' : '#AAAAAA',
       }}
     >
       <Tabs.Screen

@@ -2,7 +2,9 @@ from datetime import datetime
 import time
 
 from fastapi import FastAPI, Depends, HTTPException, Query, Request
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 
@@ -63,6 +65,120 @@ class AuthorSummaryResponse(BaseModel):
 
 app = FastAPI(title="IbtikarAI Backend", version="0.2.0")
 init_db()  # create tables on startup (local dev)
+
+# ---------- Static files for Play Console documentation ----------
+# Get the path to the static directory (server/static)
+# Try multiple possible paths to handle different deployment scenarios
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Try multiple paths in order of likelihood
+possible_paths = [
+    # Path relative to this file (most common)
+    Path(__file__).parent.parent.parent / "static",  # server/backend/api -> server/static
+    # Paths relative to current working directory
+    Path(os.getcwd()) / "server" / "static",
+    Path(os.getcwd()) / "static",
+    # Absolute paths from common Render structures
+    Path("/opt/render/project/src/server/static"),
+    Path("/app/server/static"),
+    # Relative paths as last resort
+    Path("server/static"),
+    Path("static"),
+]
+
+static_dir = None
+for path in possible_paths:
+    if path.exists() and (path / "privacy-policy.html").exists():
+        static_dir = path
+        logger.info(f"Found static directory at: {static_dir.absolute()}")
+        break
+
+if static_dir and static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+    logger.info(f"Mounted static files from: {static_dir.absolute()}")
+else:
+    logger.warning(f"Static directory not found! Tried paths: {[str(p) for p in possible_paths]}")
+    logger.warning(f"Current working directory: {os.getcwd()}")
+    logger.warning(f"__file__ location: {__file__}")
+    # Create a dummy static_dir to prevent errors
+    static_dir = Path(__file__).parent.parent.parent / "static"
+
+# Direct routes for easy access (for Play Console)
+@app.get("/privacy-policy.html")
+async def privacy_policy():
+    """Privacy Policy page for Google Play Console"""
+    # Try multiple possible locations
+    possible_files = [
+        static_dir / "privacy-policy.html",
+        Path(os.getcwd()) / "server" / "static" / "privacy-policy.html",
+        Path(os.getcwd()) / "static" / "privacy-policy.html",
+        Path(__file__).parent.parent.parent / "static" / "privacy-policy.html",
+    ]
+    
+    for file_path in possible_files:
+        if file_path.exists():
+            logger.info(f"Serving privacy-policy.html from: {file_path.absolute()}")
+            return FileResponse(file_path, media_type="text/html")
+    
+    logger.error(f"Privacy policy not found! Tried: {[str(p) for p in possible_files]}")
+    logger.error(f"CWD: {os.getcwd()}, __file__: {__file__}")
+    raise HTTPException(status_code=404, detail=f"Privacy policy not found. CWD: {os.getcwd()}")
+
+@app.get("/delete-account.html")
+async def delete_account():
+    """Delete Account page for Google Play Console"""
+    # Try multiple possible locations
+    possible_files = [
+        static_dir / "delete-account.html",
+        Path(os.getcwd()) / "server" / "static" / "delete-account.html",
+        Path(os.getcwd()) / "static" / "delete-account.html",
+        Path(__file__).parent.parent.parent / "static" / "delete-account.html",
+    ]
+    
+    for file_path in possible_files:
+        if file_path.exists():
+            logger.info(f"Serving delete-account.html from: {file_path.absolute()}")
+            return FileResponse(file_path, media_type="text/html")
+    
+    logger.error(f"Delete account page not found! Tried: {[str(p) for p in possible_files]}")
+    logger.error(f"CWD: {os.getcwd()}, __file__: {__file__}")
+    raise HTTPException(status_code=404, detail=f"Delete account page not found. CWD: {os.getcwd()}")
+
+@app.get("/debug/static-paths")
+async def debug_static_paths():
+    """Debug endpoint to check static file paths (remove in production)"""
+    import os
+    from pathlib import Path
+    
+    info = {
+        "cwd": os.getcwd(),
+        "__file__": __file__,
+        "static_dir": str(static_dir) if static_dir else None,
+        "static_dir_exists": static_dir.exists() if static_dir else False,
+        "possible_paths": []
+    }
+    
+    possible_paths = [
+        Path(__file__).parent.parent.parent / "static",
+        Path(os.getcwd()) / "server" / "static",
+        Path(os.getcwd()) / "static",
+        Path("server/static"),
+        Path("static"),
+    ]
+    
+    for path in possible_paths:
+        info["possible_paths"].append({
+            "path": str(path),
+            "absolute": str(path.absolute()),
+            "exists": path.exists(),
+            "has_privacy": (path / "privacy-policy.html").exists() if path.exists() else False,
+            "has_delete": (path / "delete-account.html").exists() if path.exists() else False,
+        })
+    
+    return info
 
 # ---------- Analysis read endpoints ----------
 

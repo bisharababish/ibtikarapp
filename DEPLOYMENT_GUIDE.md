@@ -145,17 +145,7 @@ eas build --platform android --profile production
    - URL required
    - Must be accessible
 
-4. **Delete Account URL** ✅
-   - **Required for Google Play Store**
-   - **URL**: `https://ibtikar-backend.onrender.com/delete-account`
-   - This page prominently displays:
-     - Steps to request account deletion
-     - What data will be deleted
-     - Data retention period (30 days)
-     - Contact information for deletion requests
-   - Add this URL in Google Play Console → App content → Data safety → Delete account URL
-
-5. **Content Rating**
+4. **Content Rating**
    - Complete questionnaire in Play Console
    - Usually rated "Everyone" or "Teen"
 

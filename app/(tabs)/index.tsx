@@ -64,16 +64,16 @@ export default function LoginScreen() {
     }
   }, [user, router]);
 
-  // ALWAYS use colorful gradient - NEVER black!
-  const gradientColors = ["#6366f1", "#8b5cf6", "#a855f7", "#c084fc"] as const;
+  // Official Ibtikar gradient: Yellow -> Teal -> Black
+  const gradientColors = ["#F6DE55", "#00A3A3", "#000000"] as const;
 
   return (
     <LinearGradient
       colors={gradientColors as any}
-      style={[styles.container, { backgroundColor: "#6366f1" }]}
+      style={[styles.container, { backgroundColor: "#F6DE55" }]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      locations={[0, 0.33, 0.66, 1]}
+      locations={[0, 0.5, 1]}
     >
       <View
         style={[
@@ -127,7 +127,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#6366f1", // Fallback purple color
+    backgroundColor: "#F6DE55", // Fallback Ibtikar Yellow
   },
   content: {
     flex: 1,
@@ -152,44 +152,44 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 40,
     fontWeight: "900",
-    color: "#FFFFFF",
+    color: "#000000",
     textAlign: "center",
     marginBottom: 8,
     letterSpacing: 1.5,
-    textShadowColor: "rgba(0, 0, 0, 0.7)",
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 8,
+    textShadowColor: "rgba(255, 255, 255, 0.5)",
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 6,
   },
   subtitle: {
     fontSize: 19,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: "#000000",
     textAlign: "center",
     marginBottom: 24,
     letterSpacing: 0.8,
-    opacity: 1,
-    textShadowColor: "rgba(0, 0, 0, 0.6)",
+    opacity: 0.9,
+    textShadowColor: "rgba(255, 255, 255, 0.4)",
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
+    textShadowRadius: 4,
   },
   loginButton: {
-    backgroundColor: "#1DA1F2",
-    paddingHorizontal: 40,
-    paddingVertical: 18,
-    borderRadius: 30,
+    backgroundColor: "#00A3A3",
+    paddingHorizontal: 44,
+    paddingVertical: 20,
+    borderRadius: 32,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    minWidth: 250,
+    gap: 12,
+    minWidth: 260,
     justifyContent: "center",
     marginTop: 8,
-    shadowColor: "#1DA1F2",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 10,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
+    shadowColor: "#00A3A3",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 2.5,
+    borderColor: "#000000",
   },
   loginButtonText: {
     color: "#FFFFFF",
@@ -205,33 +205,33 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   statusText: {
-    color: "#FFFFFF",
+    color: "#000000",
     fontSize: 15,
     fontWeight: "600",
     textAlign: "center",
     marginTop: 10,
-    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowColor: "rgba(255, 255, 255, 0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
-    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
   },
   checkButton: {
-    backgroundColor: "#10B981",
-    paddingHorizontal: 40,
-    paddingVertical: 18,
-    borderRadius: 30,
-    minWidth: 250,
+    backgroundColor: "#38B000",
+    paddingHorizontal: 44,
+    paddingVertical: 20,
+    borderRadius: 32,
+    minWidth: 260,
     marginTop: 20,
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 10,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
+    shadowColor: "#38B000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 12,
+    borderWidth: 2.5,
+    borderColor: "#000000",
   },
   checkButtonText: {
     color: "#FFFFFF",
@@ -243,19 +243,19 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   cancelButton: {
-    backgroundColor: "#6B7280",
-    paddingHorizontal: 40,
-    paddingVertical: 16,
-    borderRadius: 30,
-    minWidth: 250,
+    backgroundColor: "#AAAAAA",
+    paddingHorizontal: 44,
+    paddingVertical: 18,
+    borderRadius: 32,
+    minWidth: 260,
     marginTop: 10,
-    borderWidth: 1,
-    borderColor: "#9CA3AF",
+    borderWidth: 1.5,
+    borderColor: "#E5E5E5",
     shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   cancelButtonText: {
     color: "#FFFFFF",

@@ -2,9 +2,10 @@ import IbtikarLogo from "@/components/IbtikarLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePosts } from "@/hooks/usePosts";
 import { runPreview } from "@/utils/api";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { BookOpen, ExternalLink, LogOut, Shield, Sparkles } from "lucide-react-native";
+import { LogOut, Sparkles } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -77,7 +78,7 @@ export default function MainScreen() {
       rotateAnim.stopAnimation();
       rotateAnim.setValue(0);
     }
-  }, [isActive]);
+  }, [isActive, pulseAnim, rotateAnim]);
 
   const spin = rotateAnim.interpolate({
     inputRange: [0, 1],
@@ -105,7 +106,7 @@ export default function MainScreen() {
       duration: 600,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [fadeInAnim]);
 
   const openPalPoliceLink = async () => {
     const url = "https://www.palpolice.ps/contact-awareness-of-cybercrime";
@@ -157,7 +158,9 @@ export default function MainScreen() {
         console.error("Preview error:", e);
         // Try to extract more detailed error message
         let errorMsg = e?.message || "Failed to start analysis";
-        if (errorMsg.includes("HTTP 500")) {
+        if (errorMsg.includes("HTTP 520") || errorMsg.includes("520")) {
+          errorMsg = "Server connection error. The backend server is currently unavailable.\n\nThis usually means:\n• The server is temporarily down\n• There's a connection issue\n\nPlease try again in a few minutes.";
+        } else if (errorMsg.includes("HTTP 500")) {
           errorMsg = "Server error. This might be due to:\n• Twitter API connection issue\n• Database problem\n• Model API unavailable\n\nPlease try again in a moment.";
         } else if (errorMsg.includes("HTTP 429") || errorMsg.includes("rate_limited") || errorMsg.includes("rate limit")) {
           // Try to extract reset time from error details
@@ -171,6 +174,10 @@ export default function MainScreen() {
           } catch { }
 
           errorMsg = `Rate limit exceeded. The API has temporarily limited requests.\n\nPlease wait 5-10 minutes before trying again.${resetInfo}`;
+        } else if (errorMsg.includes("HTTP 502") || errorMsg.includes("HTTP 503") || errorMsg.includes("HTTP 504")) {
+          errorMsg = "Service temporarily unavailable. The server is either overloaded or under maintenance.\n\nPlease try again in a few minutes.";
+        } else if (errorMsg.includes("Failed to fetch") || errorMsg.includes("NetworkError") || errorMsg.includes("network")) {
+          errorMsg = "Network connection error. Please check your internet connection and try again.";
         }
         setError(errorMsg);
         // Revert toggle if error occurred
@@ -238,7 +245,7 @@ export default function MainScreen() {
             activeOpacity={0.8}
             onPress={handleLogout}
           >
-            <LogOut color="#ef4444" size={24} />
+            <LogOut color="#D90000" size={24} />
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -283,15 +290,15 @@ export default function MainScreen() {
               style={[
                 styles.aiIconContainer,
                 {
-                  backgroundColor: isActive ? '#8b5cf6' : '#2a2a2a',
+                  backgroundColor: isActive ? '#00A3A3' : '#333333',
                   transform: [{ scale: pulseAnim }],
                 },
               ]}
             >
               <Animated.View style={{ transform: [{ rotate: spin }] }}>
                 <Sparkles
-                  color={isActive ? "#a78bfa" : "#666666"}
-                  size={40}
+                  color={isActive ? "#F6DE55" : "#AAAAAA"}
+                  size={44}
                 />
               </Animated.View>
             </Animated.View>
@@ -312,54 +319,67 @@ export default function MainScreen() {
             <Switch
               value={isActive}
               onValueChange={handleToggle}
-              trackColor={{ false: "#333333", true: "#7c3aed" }}
-              thumbColor={isActive ? "#a78bfa" : "#666666"}
-              ios_backgroundColor="#333333"
+              trackColor={{ false: "#E5E5E5", true: "#00A3A3" }}
+              thumbColor={isActive ? "#F6DE55" : "#AAAAAA"}
+              ios_backgroundColor="#E5E5E5"
             />
           </View>
           {!!error && (
-            <Text style={{ color: "#ef4444", marginTop: 12 }} numberOfLines={2}>
+            <Text style={{ color: "#D90000", marginTop: 12 }} numberOfLines={2}>
               {error}
             </Text>
           )}
           {!!postsError && (
-            <Text style={{ color: "#ef4444", marginTop: 8 }} numberOfLines={2}>
+            <Text style={{ color: "#D90000", marginTop: 8 }} numberOfLines={2}>
               {postsError}
             </Text>
           )}
           <View style={{ marginTop: 20 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "600" }}>
+                <Text style={{ color: "#000000", fontSize: 16, fontWeight: "600" }}>
                   Analyzed Posts
                 </Text>
                 {postsTotal > 0 && (
-                  <Text style={{ color: "#888888", fontSize: 12, marginTop: 2 }}>
+                  <Text style={{ color: "#333333", fontSize: 12, marginTop: 2 }}>
                     Total: {postsTotal} post{postsTotal !== 1 ? "s" : ""}
                   </Text>
                 )}
                 {analysisSummary && (
                   <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
-                    <Text style={{ color: "#ef4444", fontSize: 11 }}>
+                    <Text style={{ color: "#D90000", fontSize: 11 }}>
                       Harmful: {analysisSummary.harmful_count ?? 0}
                     </Text>
-                    <Text style={{ color: "#10b981", fontSize: 11 }}>
+                    <Text style={{ color: "#38B000", fontSize: 11 }}>
                       Safe: {analysisSummary.safe_count ?? 0}
                     </Text>
                     {analysisSummary.unknown_count && analysisSummary.unknown_count > 0 ? (
-                      <Text style={{ color: "#888888", fontSize: 11 }}>
+                      <Text style={{ color: "#333333", fontSize: 11 }}>
                         Unknown: {analysisSummary.unknown_count}
                       </Text>
                     ) : null}
                   </View>
                 )}
               </View>
-              <TouchableOpacity onPress={() => refresh()} activeOpacity={0.8}>
-                <Text style={{ color: "#a78bfa" }}>{postsLoading ? "Refreshing..." : "Refresh"}</Text>
+              <TouchableOpacity
+                onPress={() => refresh()}
+                activeOpacity={0.7}
+                style={{
+                  backgroundColor: "#00A3A3",
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: "#000000",
+                }}
+              >
+                <Text style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 13 }}>
+                  {postsLoading ? "Refreshing..." : "Refresh"}
+                </Text>
               </TouchableOpacity>
             </View>
             {items.length === 0 ? (
-              <Text style={{ color: "#888888" }}>
+              <Text style={{ color: "#333333" }}>
                 {postsLoading ? "Loading..." : "No posts analyzed yet. Toggle Activate to analyze your feed."}
               </Text>
             ) : (
@@ -367,11 +387,10 @@ export default function MainScreen() {
                 {items.map((p) => {
                   const isHarmful = (p.label || "").toLowerCase() === "harmful" || (p.label || "").toLowerCase() === "toxic";
                   const isSafe = (p.label || "").toLowerCase() === "safe";
-                  const isUnknown = !isHarmful && !isSafe;
 
-                  const borderColor = isHarmful ? "#ef4444" : isSafe ? "#10b981" : "#888888";
-                  const bgColor = isHarmful ? "#1a0a0a" : isSafe ? "#0a1a0a" : "#1a1a1a";
-                  const labelColor = isHarmful ? "#ef4444" : isSafe ? "#10b981" : "#888888";
+                  const borderColor = isHarmful ? "#D90000" : isSafe ? "#38B000" : "#E5E5E5";
+                  const bgColor = isHarmful ? "#FAFAFA" : isSafe ? "#FAFAFA" : "#FFFFFF";
+                  const labelColor = isHarmful ? "#D90000" : isSafe ? "#38B000" : "#333333";
                   const labelIcon = isHarmful ? "⚠️" : isSafe ? "✅" : "❓";
                   const labelText = isHarmful ? "HARMFUL" : isSafe ? "SAFE" : "UNKNOWN";
 
@@ -379,11 +398,17 @@ export default function MainScreen() {
                     <View
                       key={`${p.id}-${p.post_id}`}
                       style={{
-                        padding: 12,
-                        borderRadius: 12,
+                        padding: 16,
+                        borderRadius: 16,
                         backgroundColor: bgColor,
-                        borderWidth: 1,
+                        borderWidth: 2,
                         borderColor: borderColor,
+                        shadowColor: borderColor,
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.2,
+                        shadowRadius: 4,
+                        elevation: 4,
+                        marginBottom: 12,
                       }}
                     >
                       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -392,7 +417,7 @@ export default function MainScreen() {
                             {labelIcon} @{p.author_id} • {p.lang?.toUpperCase?.() || "—"} • {labelText}
                           </Text>
                           {p.source && (
-                            <Text style={{ color: "#666666", fontSize: 10, marginTop: 2 }}>
+                            <Text style={{ color: "#333333", fontSize: 10, marginTop: 2 }}>
                               Source: {p.source.toUpperCase()} • ID: {p.post_id}
                             </Text>
                           )}
@@ -403,20 +428,17 @@ export default function MainScreen() {
                           </Text>
                         )}
                       </View>
-                      <Text style={{ color: "#ffffff", fontSize: 14, marginBottom: 8 }}>
+                      <Text style={{ color: "#000000", fontSize: 14, marginBottom: 8 }}>
                         {p.text}
                       </Text>
-                      <View style={{ paddingTop: 8, borderTopWidth: 1, borderTopColor: "#2a1a1a" }}>
+                      <View style={{ paddingTop: 8, borderTopWidth: 1, borderTopColor: "#E5E5E5" }}>
                         {p.score !== undefined && (
                           <>
-                            <Text style={{ color: "#a1a1aa", fontSize: 10, marginBottom: 4 }}>
-                              Confidence: {(p.score * 100).toFixed(2)}% (Class: {isHarmful ? "1" : "0"})
-                            </Text>
                             <View style={{ flexDirection: "row", gap: 8, marginBottom: 6 }}>
-                              <Text style={{ color: isSafe ? "#10b981" : "#666666", fontSize: 9 }}>
+                              <Text style={{ color: isSafe ? "#38B000" : "#333333", fontSize: 9 }}>
                                 Safe: {((1 - p.score) * 100).toFixed(2)}%
                               </Text>
-                              <Text style={{ color: isHarmful ? "#ef4444" : "#666666", fontSize: 9 }}>
+                              <Text style={{ color: isHarmful ? "#D90000" : "#333333", fontSize: 9 }}>
                                 Harmful: {(p.score * 100).toFixed(2)}%
                               </Text>
                             </View>
@@ -424,12 +446,12 @@ export default function MainScreen() {
                         )}
                         <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
                           {p.post_created_at && (
-                            <Text style={{ color: "#666666", fontSize: 9 }}>
+                            <Text style={{ color: "#333333", fontSize: 9 }}>
                               Posted: {new Date(p.post_created_at).toLocaleDateString()}
                             </Text>
                           )}
                           {p.created_at && (
-                            <Text style={{ color: "#666666", fontSize: 9 }}>
+                            <Text style={{ color: "#333333", fontSize: 9 }}>
                               Analyzed: {new Date(p.created_at).toLocaleDateString()}
                             </Text>
                           )}
@@ -451,7 +473,7 @@ export default function MainScreen() {
           ]}
         >
           <View style={styles.safetyHeader}>
-            <Shield color="#a78bfa" size={24} />
+            <MaterialIcons name="security" size={26} color="#00A3A3" />
             <Text style={styles.safetyTitle}>Safety & Resources</Text>
           </View>
 
@@ -462,13 +484,13 @@ export default function MainScreen() {
           >
             <View style={styles.safetyCardContent}>
               <View style={styles.safetyCardIcon}>
-                <Shield color="#10b981" size={28} />
+                <MaterialIcons name="security" size={32} color="#38B000" />
               </View>
               <View style={styles.safetyCardText}>
                 <Text style={styles.safetyCardTitle}>Palestinian Police</Text>
                 <Text style={styles.safetyCardSubtitle}>Cybercrime Awareness & Reporting</Text>
               </View>
-              <ExternalLink color="#666666" size={20} />
+              <MaterialIcons name="open-in-new" size={20} color="#333333" />
             </View>
           </TouchableOpacity>
 
@@ -479,7 +501,7 @@ export default function MainScreen() {
           >
             <View style={styles.safetyCardContent}>
               <View style={styles.safetyCardIcon}>
-                <BookOpen color="#8b5cf6" size={28} />
+                <MaterialIcons name="menu-book" size={32} color="#007BBF" />
               </View>
               <View style={styles.safetyCardText}>
                 <Text style={styles.safetyCardTitle}>Digital Safety Guide</Text>
@@ -507,35 +529,248 @@ export default function MainScreen() {
               <Text style={styles.modalCloseText}>✕</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView style={styles.modalContent}>
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={true}>
             <Text style={styles.documentTitle}>
               مشروع تمكين المرونة الرقمية: العنف القائم على النوع الاجتماعي عبر الوسائل التكنولوجية – دليل عملي شامل
             </Text>
+
+            <Text style={styles.documentSectionTitle}>الغرض من الدليل</Text>
             <Text style={styles.documentText}>
-              هذا الدليل الشامل يقدم معلومات مهمة حول العنف الرقمي القائم على النوع الاجتماعي،
-              بما في ذلك التعريفات والأشكال والأسباب والتأثيرات وآليات الاستجابة والتبليغ والحماية الرقمية.
+              مادة تعليمية/تدريبية طويلة ودسمة، تجمع التعريفات والأشكال والأسباب والأبعاد والتأثيرات والإحصاءات المحلية (فلسطين) وآليات الاستجابة والتبليغ والحماية الرقمية، بما في ذلك خطوات تفعيل المصادقة الثنائية (2-Step/2FA) على المنصات الشائعة.
             </Text>
-            <Text style={styles.documentSectionTitle}>أشكال العنف الرقمي:</Text>
+
+            <Text style={styles.documentSectionTitle}>مقدمة</Text>
             <Text style={styles.documentText}>
-              • التحرّش الإلكتروني{'\n'}
-              • الابتزاز الجنسي/العاطفي{'\n'}
-              • الملاحقة الإلكترونية{'\n'}
-              • نشر الصور/المعلومات الخاصة دون إذن{'\n'}
-              • التنمّر الإلكتروني{'\n'}
-              • انتحال الهوية{'\n'}
-              • تقييد حرية التعبير{'\n'}
-              • الاختراق والتجسّس{'\n'}
-              • الديب فيك والصور المركبة
+              مع تطور التكنولوجيا وانتشار وسائل التواصل الاجتماعي، ظهر العنف الرقمي القائم على النوع الاجتماعي بوصفه امتدادًا للعنف الواقع خارج الشبكة. هذا العنف يسبب أضرارًا نفسية واجتماعية ومادية وقانونية، ويحد من مشاركة النساء والفتيات والفاعلات في الشأن العام، ويُقيد حرية التعبير في الفضاء الرقمي تمامًا كما يحدث في الواقع.
             </Text>
+
+            <Text style={styles.documentSectionTitle}>تعريفات أساسية</Text>
+            <Text style={styles.documentText}>
+              <Text style={styles.documentBold}>العنف الرقمي القائم على النوع الاجتماعي (TF-GBV):</Text> أي سلوك عدواني أو تهديد أو تحرش أو انتهاك للخصوصية تُستخدم فيه تكنولوجيا المعلومات والاتصالات (الإنترنت، الهواتف، التطبيقات، البريد الإلكتروني... إلخ) ويستهدف النساء والفتيات أو الأفراد بناءً على النوع الاجتماعي، بهدف التخويف أو الإسكات أو الإيذاء.{'\n\n'}
+              <Text style={styles.documentBold}>التضليل القائم على النوع الاجتماعي:</Text> حملات أو مضامين مضللة/مفبركة تستغل الصور النمطية والوصم لإقصاء النساء عن الفضاء العام والتشكيك في كفاءتهن، غالبًا عبر صور مُقتطعة أو تعليقات مسيئة على المظهر/السلوك/الحياة الخاصة.{'\n\n'}
+              <Text style={styles.documentBold}>الابتزاز الإلكتروني (Sextortion/Blackmail):</Text> تهديد بنشر معلومات/صور خاصة لانتزاع المال أو السيطرة أو إكراه الضحية على سلوك معين.{'\n\n'}
+              <Text style={styles.documentBold}>الملاحقة الرقمية (Cyberstalking):</Text> رصد وتتبع ومراقبة الضحية عبر أدوات رقمية بشكل متكرر وممنهج.{'\n\n'}
+              <Text style={styles.documentBold}>الصور/الفيديوهات المُركّبة (Deepfakes):</Text> مواد مُولَّدة أو مُعدّلة بالذكاء الاصطناعي تُستخدم للإساءة أو التشهير أو الابتزاز.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>أشكال العنف الرقمي القائم على النوع الاجتماعي</Text>
+            <Text style={styles.documentText}>
+              • <Text style={styles.documentBold}>التحرّش الإلكتروني:</Text> رسائل ذات طابع جنسي غير مرغوب، تعليقات مهينة، إرسال صور غير لائقة.{'\n'}
+              • <Text style={styles.documentBold}>الابتزاز الجنسي/العاطفي:</Text> تهديد بنشر محتوى خاص مقابل المال أو السيطرة أو الإذعان.{'\n'}
+              • <Text style={styles.documentBold}>الملاحقة الإلكترونية:</Text> مراقبة الحسابات، تتبّع التواجد والنشاط، اقتحام الحياة الخاصة.{'\n'}
+              • <Text style={styles.documentBold}>نشر الصور/المعلومات الخاصة دون إذن:</Text> بهدف التشهير أو الانتقام.{'\n'}
+              • <Text style={styles.documentBold}>التنمّر الإلكتروني:</Text> إهانات وسخرية وحملات منظمة للتشويه والإقصاء.{'\n'}
+              • <Text style={styles.documentBold}>انتحال الهوية:</Text> فتح حسابات مزيفة باسم الضحية لنشر محتوى مسيء أو مراسلة معارفها.{'\n'}
+              • <Text style={styles.documentBold}>تقييد حرية التعبير:</Text> تنظيم هجمات لإسكات النساء المُعبّرات عن آرائهن وإخراجهن من الفضاء العام.{'\n'}
+              • <Text style={styles.documentBold}>الاختراق والتجسّس:</Text> سرقة كلمات المرور، الوصول للصور والرسائل والموقع الجغرافي.{'\n'}
+              • <Text style={styles.documentBold}>الديب فيك والصور المركبة:</Text> خلق مواد زائفة تستخدم جسد/وجه الضحية لأغراض جنسية أو تشهيرية.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>أسباب التفشي</Text>
+            <Text style={styles.documentText}>
+              • وصول واسع للتكنولوجيا مع فجوة في الوعي والأمان الرقمي.{'\n'}
+              • تمييز متجذّر وصور نمطية ضد النساء والفتيات.{'\n'}
+              • ضعف/قصور تشريعات أو التطبيق العملي لها.{'\n'}
+              • ثقافة لوم الضحية والتستر على المُعتدين.{'\n'}
+              • استغلال ثغرات أمنية وتقنيات الهندسة الاجتماعية.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>الأبعاد المؤثرة</Text>
+            <Text style={styles.documentText}>
+              <Text style={styles.documentBold}>أ) البُعد الثقافي:</Text>{'\n'}
+              التقليل من خطورة العنف الرقمي أو تبريره. استدعاء مفاهيم مثل {'"'}{'الشرف'}{'"'} للضغط على الضحايا ومنع الإبلاغ. لوم الناجية بدلًا من دعمها.{'\n\n'}
+              <Text style={styles.documentBold}>ب) البُعد التكنولوجي:</Text>{'\n'}
+              ثغرات أمنية واختراقات وروابط خادعة (Phishing). أدوات تتبّع المواقع والبيانات الوِصفية للصور. تطور الذكاء الاصطناعي والديب فيك الذي يعقّد الإثبات ويضاعف الأذى.{'\n\n'}
+              <Text style={styles.documentBold}>ج) البُعد القانوني:</Text>{'\n'}
+              قوانين غير محدّثة أو فجوات في التجريم/الإثبات. إهمال الأثر النفسي وطول إجراءات التقاضي.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>الإحصائيات (فلسطين)</Text>
+            <Text style={styles.documentText}>
+              <Text style={styles.documentBold}>وفقًا لـ ActionAid Palestine (2023):</Text>{'\n'}
+              • 10% من النساء المتزوجات (15–64 سنة) تعرضن للعنف الرقمي عبر التواصل الاجتماعي.{'\n'}
+              • 12% من غير المتزوجات تعرضن للعنف عبر وسائل التواصل.{'\n'}
+              • 8% تعرضن له عبر الاتصالات الهاتفية.{'\n\n'}
+              <Text style={styles.documentBold}>وفقًا لـ 7amleh (2018):</Text>{'\n'}
+              • واحدة من كل أربع نساء أغلقت حساباتها بسبب العنف الرقمي.{'\n'}
+              • ثلث المشاركات تعرضن لمحاولات اختراق.{'\n'}
+              • ثلث آخر تلقى صورًا أو فيديوهات جنسية غير مرغوبة.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>التأثيرات على الضحايا</Text>
+            <Text style={styles.documentText}>
+              <Text style={styles.documentBold}>أ) نفسيًا:</Text> قلق، اكتئاب، اضطرابات النوم، توتر مزمن، أعراض صدمة (PTSD) في الحالات الشديدة. فقدان الثقة بالنفس، شعور دائم بالتهديد، جلد الذات.{'\n\n'}
+              <Text style={styles.documentBold}>ب) اجتماعيًا:</Text> نزاعات أسرية، عزلة اجتماعية، تقييد العلاقات. انسحاب قسري من الإنترنت أو استخدام هويات مستعارة.{'\n\n'}
+              <Text style={styles.documentBold}>ج) تعليميًا/مهنيًا:</Text> تراجع بالأداء، تغيّب/انسحاب من الدراسة أو العمل. فقدان فرص وظيفية أو مشاريع بسبب التشهير.{'\n\n'}
+              <Text style={styles.documentBold}>د) أمنيًا/جسديًا:</Text> تعقّب في العالم الواقعي بعد تسريب بيانات (رقم، عنوان، مكان عمل)، مخاطر استهداف مباشر.{'\n\n'}
+              <Text style={styles.documentBold}>هـ) قانونيًا/اقتصاديًا:</Text> تكاليف قانونية وتقنية، خسائر مالية نتيجة الابتزاز أو سرقة الحسابات.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>الفئات الأكثر عرضة</Text>
+            <Text style={styles.documentText}>
+              النساء والفتيات عموماً، وبشكل خاص:{'\n'}
+              • الناشطات/المدافعات/العاملات في الشأن العام.{'\n'}
+              • الصحفيات وصانعات المحتوى والمؤثرات.{'\n'}
+              • الطالبات وصاحبات المشاريع الصغيرة/الأعمال المنزلية.{'\n'}
+              • من لديهن تجارب سابقة مع العنف الأسري أو المجتمعي.{'\n'}
+              • المراهقات والشابات بسبب قلة الخبرة الرقمية.{'\n'}
+              • من يبحثن عن علاقات عاطفية عبر الإنترنت.
+            </Text>
+
             <Text style={styles.documentSectionTitle}>ماذا تفعلين إذا تعرضتِ لابتزاز أو عنف رقمي؟</Text>
             <Text style={styles.documentText}>
-              1. لا تتجاوبي مع المبتز ولا ترسلي أموالًا{'\n'}
-              2. احفظي الأدلة فورًا (صور شاشة، روابط، تواريخ){'\n'}
-              3. غيّري كلمات المرور وفعّلي المصادقة الثنائية{'\n'}
-              4. احظري الحسابات المسيئة وبلّغي عنها{'\n'}
-              5. اطلبي دعمًا متخصصًا (نفسي، قانوني، تقني){'\n'}
-              6. أبلغي الجهات الرسمية (وحدة الجرائم الإلكترونية)
+              1. <Text style={styles.documentBold}>لا تتجاوبي مع المبتز ولا ترسلي أموالًا.</Text>{'\n'}
+              2. <Text style={styles.documentBold}>احفظي الأدلة فورًا:</Text> صور شاشة، روابط، تواريخ، عناوين حسابات، سجلات محادثات. استخدمي جهازًا آمنًا للحفظ.{'\n'}
+              3. <Text style={styles.documentBold}>غيّري كلمات المرور وفعّلي المصادقة الثنائية</Text> على جميع الحسابات.{'\n'}
+              4. <Text style={styles.documentBold}>احظري الحسابات المسيئة وبلّغي عنها</Text> داخل المنصة.{'\n'}
+              5. <Text style={styles.documentBold}>اطلبي دعمًا متخصصًا:</Text>{'\n'}
+              • دعم نفسي واجتماعي (خطوط ساخنة/منظمات محلية).{'\n'}
+              • دعم قانوني (محامٍ/ة، مؤسسات مسانِدة).{'\n'}
+              • دعم تقني (خبير أمان رقمي/منصات مساعدة).{'\n'}
+              6. <Text style={styles.documentBold}>الإبلاغ للجهات الرسمية</Text> (وحدة الجرائم الإلكترونية/النيابة العامة) وفق الإجراءات المتاحة في بلدك.{'\n'}
+              7. <Text style={styles.documentBold}>حماية فورية للأجهزة:</Text> فحص برمجيات خبيثة، إلغاء جلسات تسجيل الدخول المفتوحة، مراجعة تطبيقات لديها صلاحيات زائدة، فصل النسخ الاحتياطية غير الآمنة.
             </Text>
+
+            <Text style={styles.documentSectionTitle}>كيف نمنع التعرض مستقبلاً؟ (حزمة أدوات الأمان الرقمي)</Text>
+            <Text style={styles.documentText}>
+              • كلمات مرور قوية وفريدة لكل خدمة، مع مدير كلمات مرور موثوق.{'\n'}
+              • المصادقة الثنائية (2FA) دائمًا (تطبيق رموز أو مفاتيح أمان).{'\n'}
+              • ضبط إعدادات الخصوصية في المنصات وحصر الظهور للجمهور المناسب.{'\n'}
+              • عدم فتح الروابط المجهولة أو تنزيل مرفقات غير متوقعة.{'\n'}
+              • تحديثات دورية للنظام والتطبيقات والمضادّات.{'\n'}
+              • مراجعة صلاحيات التطبيقات على الهاتف (الكاميرا/المايك/الموقع).{'\n'}
+              • تقليل البصمة الرقمية: تجنّب مشاركة بيانات حساسة أو صور خاصة عبر أجهزة متصلة.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>تفعيل المصادقة الثنائية (2-Step/2FA)</Text>
+            <Text style={styles.documentText}>
+              يُفضَّل استخدام تطبيق مُوَلِّد رموز (Authenticator) بدل الرسائل النصية عند الإمكان.{'\n\n'}
+              <Text style={styles.documentBold}>أ) فيسبوك (Facebook):</Text>{'\n'}
+              افتحي الإعدادات والخصوصية {'>'} الإعدادات. انتقلي إلى الحماية وتسجيل الدخول. ضمن استخدام المصادقة الثنائية، اختاري تطبيق مصادقة أو رسائل نصية أو مفتاح أمان. اتبعي التعليمات لإكمال الربط واحفظي رموز الاسترجاع.{'\n\n'}
+              <Text style={styles.documentBold}>ب) إنستغرام (Instagram):</Text>{'\n'}
+              من الملف الشخصي {'>'} القائمة ☰ {'>'} المركز لإدارة الحسابات (Accounts Center) أو الأمان. اختاري المصادقة الثنائية. فعّلي تطبيق المصادقة أو الرسائل النصية أو واتساب حيثما يتاح. احفظي رموز الاسترجاع في مكان آمن.{'\n\n'}
+              <Text style={styles.documentBold}>ج) سناب شات (Snapchat):</Text>{'\n'}
+              افتحي الإعدادات في الملف الشخصي. اختاري التحقق بخطوتين/Two-Factor Authentication. فعّلي SMS ثم أضيفي تطبيق توليد الرموز كخيار احتياطي إن أمكن. أنشئي رموز الاسترداد واحتفظي بها.{'\n\n'}
+              <Text style={styles.documentBold}>د) تيك توك (TikTok):</Text>{'\n'}
+              الملف الشخصي ثم الإعدادات والخصوصية من ثم الأمان. ادخلي إلى التحقق بخطوتين. اختاري كلمة مرور + وسيلة ثانية (تطبيق رموز أو SMS أو بريد/إشعار، حسب المتاح في منطقتك). أكملِي الإعداد واحفظي رموز الاسترداد.{'\n\n'}
+              <Text style={styles.documentBold}>تلميحات مهمة:</Text>{'\n'}
+              لا تعتمِدي على رقم واحد فقط؛ أضيفي طرقًا احتياطية (تطبيق رموز + بريد احتياطي). لا تشاركي رموز المصادقة أو رموز الاسترجاع مع أي طرف.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>التنمّر الإلكتروني</Text>
+            <Text style={styles.documentText}>
+              <Text style={styles.documentBold}>ما هو التنمّر الإلكتروني؟</Text>{'\n'}
+              سلوك عدائي متكرر يُنفَّذ عبر الوسائل الرقمية ويهدف إلى إلحاق الأذى النفسي أو الاجتماعي أو السمعة بالضحية.{'\n\n'}
+              <Text style={styles.documentBold}>خطة استجابة سريعة:</Text>{'\n'}
+              1. وثّقي فوراً: صور شاشة، روابط، تواريخ، أسماء الحسابات.{'\n'}
+              2. أوقفي التصعيد: لا تردي على الرسائل المسيئة.{'\n'}
+              3. احمي حسابك: غيّري كلمات المرور، فعّلي المصادقة الثنائية.{'\n'}
+              4. احظري وبلّغي: احظري الحسابات المسيئة وبلّغي المحتوى عبر آليات المنصة.{'\n'}
+              5. اطّلبي دعمًا: تحدثي مع شخص تثقين به، واطلبي مساندة نفسية أو قانونية إذا تطلب الأمر.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>انتحال الشخصية</Text>
+            <Text style={styles.documentText}>
+              <Text style={styles.documentBold}>ما هو انتحال الشخصية؟</Text>{'\n'}
+              إنشاء حساب أو استخدام معلومات شخصية لشخص آخر بهدف الانتحال — أي التمثيل كأنك أنت الشخص الحقيقي — من أجل خداع الناس أو الإساءة أو ابتزاز أو التشهير.{'\n\n'}
+              <Text style={styles.documentBold}>ماذا تفعلين فوراً لو اكتشفتِ انتحالًا؟</Text>{'\n'}
+              1. وثّقي الأدلة فورًا: صور شاشة، روابط، توقيت.{'\n'}
+              2. أبلغي المنصة: استخدمي آلية التبليغ واطلبي إزالة الحساب.{'\n'}
+              3. أخبري الدائرة القريبة: أصدقاء/عائلة/زملاء.{'\n'}
+              4. أمّني حساباتك الحقيقية: غيّري كلمات المرور، فعّلي المصادقة الثنائية.{'\n'}
+              5. استشيري فنية/قانونية: خبير أمان رقمي ومحامٍ/ة أو منظمة حقوقية مختصة.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>الديب فيك (Deepfake)</Text>
+            <Text style={styles.documentText}>
+              <Text style={styles.documentBold}>ما هو الديب فيك؟</Text>{'\n'}
+              تقنية تزييف عميق تستخدم الذكاء الاصطناعي لإخراج مقاطع مرئية جديدة أو التعديل عليها بحيث يبدو الفيديو كأنه يقوم بعرض أشياء لا تمت للواقع بصلة.{'\n\n'}
+              <Text style={styles.documentBold}>مخاطر التزييف العميق:</Text>{'\n'}
+              • نشر محتوى مزيف ومضلل.{'\n'}
+              • ممارسة التلاعب والاحتيال.{'\n'}
+              • تشويه السمعة والاعتبار.{'\n'}
+              • إنجاح مخططات الابتزاز.{'\n'}
+              • نشر الكراهية وتشجيع العنف.{'\n\n'}
+              <Text style={styles.documentBold}>كيفية الوقاية:</Text>{'\n'}
+              • تطوير آليات كشف التزييف العميق.{'\n'}
+              • نشر الوعي بين الجماهير.{'\n'}
+              • التأكد من المحتوى المنشور.{'\n'}
+              • تجنب التعامل مع الغرباء.{'\n'}
+              • الامتناع عن التردد على المواقع المشبوهة.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>سرقة الحسابات (Account Takeover)</Text>
+            <Text style={styles.documentText}>
+              <Text style={styles.documentBold}>ما هي سرقة الحسابات؟</Text>{'\n'}
+              الوصول غير المصرح به إلى حساب رقمي بحيث يتحكم المهاجم بحسابك أو يستخدمه لإرسال رسائل/سرقة بيانات/ابتزاز.{'\n\n'}
+              <Text style={styles.documentBold}>علامات تدل أن حسابك مخترق:</Text>{'\n'}
+              • نشاط/رسائل لم تقومي بها.{'\n'}
+              • تغيير كلمة المرور أو البريد دون علمك.{'\n'}
+              • إشعارات تسجيل دخول من أماكن/أجهزة غريبة.{'\n'}
+              • فقدان الوصول للحساب.{'\n\n'}
+              <Text style={styles.documentBold}>ماذا تفعلين فوراً إذا اشتبهتِ بالاختراق؟</Text>{'\n'}
+              1. افصلي الأجهزة عن الإنترنت مؤقتًا.{'\n'}
+              2. وثّقي الأدلة: صور شاشة لإشعارات الدخول.{'\n'}
+              3. غيّري كلمة المرور فورًا للحساب المتأثر ولكل الحسابات الأخرى.{'\n'}
+              4. فعّلي المصادقة الثنائية القوية.{'\n'}
+              5. افحصي جهازك ببرنامج مضادّ برمجيات خبيثة.{'\n'}
+              6. سجّلي الخروج من كل جلسات الدخول.{'\n'}
+              7. أبلغي المنصة عن الاختراق.{'\n'}
+              8. استشيري جهة قانونية أو وحدة الجرائم الإلكترونية إذا حصل سرق أموال أو ابتزاز.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>أهم 3 معلومات لا يجب مشاركتها على الإنترنت</Text>
+            <Text style={styles.documentText}>
+              <Text style={styles.documentBold}>1. المعلومات الشخصية الحساسة:</Text>{'\n'}
+              تجنبي نشر نسخ من بطاقة الهوية، جواز السفر، العنوان، رقم الهاتف، تاريخ الميلاد الكامل، أو بيانات الحساب البنكي.{'\n\n'}
+              <Text style={styles.documentBold}>2. معلومات العمل:</Text>{'\n'}
+              لا تشاركي تفاصيل العمل أو مشاريع الشركة أو المنتجات الجديدة على الإنترنت.{'\n\n'}
+              <Text style={styles.documentBold}>3. الموقع الجغرافي:</Text>{'\n'}
+              تجنبي نشر موقعك بشكل مستمر لأنه قد يعرضك للخطر.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>كيف نحتوي شخص تعرض للتنمّر أو الابتزاز؟</Text>
+            <Text style={styles.documentText}>
+              1. <Text style={styles.documentBold}>الاستماع والتواجد العاطفي:</Text> خلي الشخص يعرف أنه ليس وحيدًا.{'\n'}
+              2. <Text style={styles.documentBold}>التحقق من الحالة النفسية:</Text> لاحظي علامات التوتر أو القلق.{'\n'}
+              3. <Text style={styles.documentBold}>إزالة شعور اللوم:</Text> ذكّريها أن المسؤولية على المعتدي وليس الضحية.{'\n'}
+              4. <Text style={styles.documentBold}>وضع خطة عملية:</Text> توثيق الأدلة، حماية الحسابات، الإبلاغ.{'\n'}
+              5. <Text style={styles.documentBold}>الدعم النفسي والتواصل المستمر:</Text> متابعة الضحية بعد الإجراءات التقنية.{'\n'}
+              6. <Text style={styles.documentBold}>تعزيز الثقة والتمكين:</Text> ذكّريها بحقوقها الرقمية وقدرتها على حماية نفسها.{'\n'}
+              7. <Text style={styles.documentBold}>البيئة المحيطة والدعم الاجتماعي:</Text> إشراك أفراد موثوقين إذا أراد الشخص ذلك.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>✅ أفعل / ❌ لا تفعل</Text>
+            <Text style={styles.documentText}>
+              <Text style={styles.documentBold}>✅ أفعل:</Text>{'\n'}
+              • وثّقي الأدلة: صور شاشة، روابط، تواريخ.{'\n'}
+              • فعّلي المصادقة الثنائية واستخدمي كلمات مرور قوية.{'\n'}
+              • احظري المبتز وبلّغي عنه عبر المنصة.{'\n'}
+              • اطلبي دعم قانوني، نفسي أو تقني.{'\n'}
+              • أبلغي وحدة الجرائم الإلكترونية عند الحاجة.{'\n\n'}
+              <Text style={styles.documentBold}>❌ لا تفعل:</Text>{'\n'}
+              • لا تحذفي الأدلة حتى لو كان المحتوى حساسًا.{'\n'}
+              • لا تشاركي كلمات المرور أو رموز الاسترجاع.{'\n'}
+              • لا تدخلي في حوار مع المبتز بعد أول تهديد.{'\n'}
+              • لا ترسلي أي أموال أو محتوى إضافي.{'\n'}
+              • لا تضغطي على روابط أو مرفقات مشبوهة.{'\n'}
+              • لا تلومي نفسك – المسؤولية دائمًا على المعتدي.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>الإطار القانوني المحلي (فلسطين)</Text>
+            <Text style={styles.documentText}>
+              <Text style={styles.documentBold}>قانون الجرائم الإلكترونية (قانون العقوبات المعدل 2017):</Text>{'\n'}
+              يعاقب على الاختراق غير المصرح به، سرقة البيانات، الابتزاز الرقمي، والتشهير عبر الإنترنت. يجرّم نشر الصور/الفيديوهات الخاصة دون إذن.{'\n\n'}
+              <Text style={styles.documentBold}>قوانين حماية النساء والأطفال:</Text>{'\n'}
+              تحمي من التحرش والاعتداء الجنسي والعنف الأسري. تشمل عقوبات على الابتزاز الجنسي والعاطفي عبر الإنترنت.{'\n\n'}
+              <Text style={styles.documentBold}>نصيحة:</Text> دوّني كل الأدلة قبل التوجه للجهات القانونية، واحرصي على استشارة محامٍ/محامية متخصص/ة بالجرائم الإلكترونية.
+            </Text>
+
+            <Text style={styles.documentSectionTitle}>الخاتمة</Text>
+            <Text style={styles.documentText}>
+              يمثل العنف الرقمي القائم على النوع الاجتماعي خطراً متزايداً يهدد السلامة النفسية والاجتماعية للنساء والفتيات في فلسطين. مواجهته تتطلب وعيًا جماعيًا، تشريعات واضحة، تدريب كوادر متخصصة، وتعزيز مهارات الحماية الرقمية لدى الفئات الأكثر عرضة. نشر الثقافة الرقمية الآمنة هو خط الدفاع الأول لحماية مجتمع أكثر عدلاً وأماناً.
+            </Text>
+
             <Text style={styles.documentSectionTitle}>للحصول على المساعدة:</Text>
             <TouchableOpacity
               style={styles.linkButton}
@@ -544,11 +779,8 @@ export default function MainScreen() {
               <Text style={styles.linkButtonText}>
                 زيارة موقع الشرطة الفلسطينية - وحدة الجرائم الإلكترونية
               </Text>
-              <ExternalLink color="#fff" size={18} />
+              <MaterialIcons name="open-in-new" size={18} color="#fff" />
             </TouchableOpacity>
-            <Text style={styles.documentNote}>
-              ملاحظة: هذا دليل مختصر. للحصول على الدليل الكامل، يرجى زيارة الموقع الرسمي.
-            </Text>
           </ScrollView>
         </View>
       </Modal>
@@ -559,7 +791,7 @@ export default function MainScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1e1b4b",
+    backgroundColor: "#FAFAFA",
   },
   header: {
     paddingHorizontal: 20,
@@ -567,19 +799,19 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   logoutButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#312e81",
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#ef4444",
-    shadowColor: "#ef4444",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    borderWidth: 2,
+    borderColor: "#D90000",
+    shadowColor: "#D90000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
   },
   scrollView: {
     flex: 1,
@@ -608,8 +840,13 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    borderWidth: 3,
-    borderColor: "#1DA1F2",
+    borderWidth: 4,
+    borderColor: "#00A3A3",
+    shadowColor: "#00A3A3",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   onlineIndicator: {
     position: "absolute",
@@ -618,38 +855,38 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "#10b981",
+    backgroundColor: "#38B000",
     borderWidth: 3,
-    borderColor: "#000000",
+    borderColor: "#FFFFFF",
   },
   userName: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#000000",
     marginBottom: 4,
   },
   userHandle: {
     fontSize: 16,
-    fontWeight: "400",
-    color: "#1DA1F2",
+    fontWeight: "500",
+    color: "#00A3A3",
     marginBottom: 4,
   },
   userEmail: {
     fontSize: 14,
     fontWeight: "400",
-    color: "#666666",
+    color: "#333333",
   },
   aiSection: {
-    backgroundColor: "#312e81",
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "#4c1d95",
-    shadowColor: "#8b5cf6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 28,
+    borderWidth: 2,
+    borderColor: "#00A3A3",
+    shadowColor: "#00A3A3",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   aiHeader: {
     flexDirection: "row",
@@ -657,15 +894,20 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   aiIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "#1e1b4b",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#FAFAFA",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
-    borderWidth: 2,
-    borderColor: "#8b5cf6",
+    marginRight: 18,
+    borderWidth: 3,
+    borderColor: "#00A3A3",
+    shadowColor: "#00A3A3",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
   },
   aiInfo: {
     flex: 1,
@@ -673,29 +915,192 @@ const styles = StyleSheet.create({
   aiTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#000000",
     marginBottom: 4,
   },
   aiStatus: {
     fontSize: 14,
     fontWeight: "400",
-    color: "#666666",
+    color: "#333333",
   },
   aiStatusActive: {
-    color: "#a78bfa",
+    color: "#00A3A3",
+    fontWeight: "600",
   },
   toggleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: "#4c1d95",
+    borderTopWidth: 2,
+    borderTopColor: "#E5E5E5",
+    opacity: 1,
   },
   toggleLabel: {
     fontSize: 16,
     fontWeight: "600",
+    color: "#000000",
+  },
+  safetySection: {
+    marginTop: 32,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 28,
+    borderWidth: 2,
+    borderColor: "#00A3A3",
+    shadowColor: "#00A3A3",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  safetyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+    gap: 12,
+  },
+  safetyTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#000000",
+  },
+  safetyCard: {
+    backgroundColor: "#FAFAFA",
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: "#00A3A3",
+    shadowColor: "#00A3A3",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  safetyCardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  safetyCardIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#00A3A3",
+  },
+  safetyCardText: {
+    flex: 1,
+  },
+  safetyCardTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000000",
+    marginBottom: 4,
+  },
+  safetyCardSubtitle: {
+    fontSize: 13,
+    color: "#333333",
+    lineHeight: 18,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "#FAFAFA",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    paddingTop: 60,
+    borderBottomWidth: 2,
+    borderBottomColor: "#00A3A3",
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#000000",
+  },
+  modalCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#00A3A3",
+  },
+  modalCloseText: {
+    color: "#000000",
+    fontSize: 20,
+    fontWeight: "600",
+  },
+  modalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  documentTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#000000",
+    marginBottom: 20,
+    textAlign: "right",
+    lineHeight: 28,
+  },
+  documentText: {
+    fontSize: 15,
+    color: "#333333",
+    lineHeight: 24,
+    marginBottom: 20,
+    textAlign: "right",
+  },
+  documentSectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#00A3A3",
+    marginTop: 24,
+    marginBottom: 12,
+    textAlign: "right",
+  },
+  linkButton: {
+    backgroundColor: "#00A3A3",
+    borderRadius: 16,
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginTop: 20,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "#000000",
+    shadowColor: "#00A3A3",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  linkButtonText: {
     color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  documentNote: {
+    fontSize: 13,
+    color: "#333333",
+    fontStyle: "italic",
+    marginTop: 20,
+    textAlign: "right",
+  },
+  documentBold: {
+    fontWeight: "700",
+    color: "#000000",
   },
   safetySection: {
     marginTop: 32,

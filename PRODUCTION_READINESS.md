@@ -61,7 +61,6 @@
 
 ### Play Store (Android)
 - [ ] Privacy Policy URL required
-- [✅] Delete Account URL: `https://ibtikar-backend.onrender.com/delete-account`
 - [ ] App description (short: 80 chars, full: 4000 chars)
 - [ ] Screenshots (phone, tablet, TV, wear)
 - [ ] Feature graphic (1024x500)

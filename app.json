@@ -7,28 +7,41 @@
     "scheme": "ibtikar",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "description": "Ibtikar for Empowerment and Social Entrepreneurship",
-    "primaryColor": "#f6dc55",
-    "backgroundColor": "#ffffff",
+    "description": "Ibtikar - AI-powered social media safety tool for detecting harmful content. Empowering users with digital safety and social entrepreneurship.",
+    "primaryColor": "#F6DE55",
+    "backgroundColor": "#FAFAFA",
     "icon": "./assets/images/icon.png",
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#f6dc55"
+      "backgroundColor": "#F6DE55"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ibtikar.app"
+      "bundleIdentifier": "com.ibtikar.app",
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "This app does not track users across other apps or websites.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.ibtikar.app",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      }
+      },
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.ibtikar.app"
     },
     "web": {
       "output": "static",
@@ -40,6 +53,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": false
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1c216293-de08-4547-a380-3bb0516fd171"
+      },
+      "router": {}
+    },
+    "owner": "bisharababish"
   }
 }

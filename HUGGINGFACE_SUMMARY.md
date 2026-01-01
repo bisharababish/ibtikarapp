@@ -1,5 +1,26 @@
 # Hugging Face Integration Summary & Next Steps
 
+## 🚀 QUICK FIX: Files to Upload to Hugging Face
+
+**From your drive, upload ONLY these 7 files to `Bisharababish/arabert-toxic-classifier`:**
+
+1. ✅ `config.json` (~791 bytes)
+2. ✅ `model.safetensors` (~541 MB) - **CRITICAL: Must be actual file, not LFS pointer**
+3. ✅ `tokenizer_config.json` (~1.43 KB)
+4. ✅ `tokenizer.json` (~1.77 MB)
+5. ✅ `vocab.txt` (~751 KB)
+6. ✅ `special_tokens_map.json` (~732 bytes)
+7. ✅ `.gitattributes` (~1.52 KB) - Optional but recommended
+
+**❌ DO NOT upload:** checkpoint folders, plots/, visualizations/, summary_report.json, threshold_analysis.csv, thresholds.json, training_args.bin
+
+**After uploading, verify:**
+- Total repository size is ~543 MB (not just a few KB)
+- All files show as "Safe" or "Verified" (not "LFS")
+- Model loads correctly in the Space
+
+---
+
 ## What We Did
 
 ### 1. Initial Problem
@@ -77,11 +98,31 @@
 ### Step 1: Upload New Model to Hugging Face
 
 1. **Go to Hugging Face**: https://huggingface.co/Bisharababish
-2. **Create new model repository** (or update existing)
-3. **Upload model files**:
-   - Make sure actual model files are uploaded (not Git LFS pointers)
-   - Files needed: `config.json`, `pytorch_model.bin` or `model.safetensors`, `vocab.txt`, `tokenizer_config.json`
+2. **Create new model repository** (or update existing `Bisharababish/arabert-toxic-classifier`)
+3. **Upload ONLY these files from your drive** (REQUIRED for model to work):
+
+   **✅ REQUIRED FILES (Upload these):**
+   - `config.json` - Model architecture configuration
+   - `model.safetensors` - Model weights (~541 MB) - **MUST be actual file, not LFS pointer**
+   - `tokenizer_config.json` - Tokenizer configuration
+   - `tokenizer.json` - Tokenizer vocabulary and rules (~1.77 MB)
+   - `vocab.txt` - Vocabulary file (~751 KB)
+   - `special_tokens_map.json` - Special tokens mapping
+   - `.gitattributes` - Optional but recommended for proper file handling
+
+   **❌ DO NOT UPLOAD (Skip these - they're training artifacts):**
+   - `checkpoint-*` folders (checkpoint-677, checkpoint-2031, checkpoint-2708, etc.)
+   - `plots/` folder
+   - `visualizations/` folder
+   - `summary_report.json`
+   - `threshold_analysis.csv`
+   - `thresholds.json`
+   - `training_args.bin`
+
+4. **Important**: 
    - Total size should be ~540MB (not just a few KB)
+   - Make sure `model.safetensors` is the actual file (~541 MB), NOT a Git LFS pointer
+   - If files show as "LFS" or are only a few KB, they won't work - you need the real files
 
 ### Step 2: Update Space App (`app.py`)
 

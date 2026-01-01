@@ -174,7 +174,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
 
     return (
         <LinearGradient
-            colors={["#6366f1", "#8b5cf6", "#a855f7", "#c084fc"]}
+            colors={["#F6DE55", "#00A3A3", "#000000"]}
             style={styles.container}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -248,18 +248,18 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 42,
         fontWeight: "800",
-        color: "#FFFFFF",
+        color: "#000000",
         textAlign: "center",
         marginBottom: 8,
         letterSpacing: 2,
-        textShadowColor: "rgba(0, 0, 0, 0.3)",
+        textShadowColor: "rgba(255, 255, 255, 0.5)",
         textShadowOffset: { width: 0, height: 2 },
         textShadowRadius: 4,
     },
     subtitle: {
         fontSize: 18,
         fontWeight: "500",
-        color: "#FFFFFF",
+        color: "#000000",
         textAlign: "center",
         opacity: 0.9,
         letterSpacing: 1,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
         width: 10,
         height: 10,
         borderRadius: 5,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#000000",
     },
 });
 
