@@ -294,7 +294,7 @@ async def x_oauth_callback(
     print("🔄 Exchanging code for token...")
 
     try:
-    token = await exchange_code_for_token(code, code_verifier)
+        token = await exchange_code_for_token(code, code_verifier)
         print("✅ Token exchange successful")
     except Exception as e:
         print(f"❌ Token exchange failed: {e}")
@@ -637,3 +637,320 @@ async def analysis_preview(
         safe_count=sc,
         unknown_count=uc,
     )
+
+
+# ---------- Account Deletion Endpoints ----------
+
+
+@app.get("/delete-account", response_class=HTMLResponse)
+def delete_account_page():
+    """
+    Account deletion request page for Google Play Store compliance.
+    This page prominently displays how users can request account deletion.
+    """
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Delete Account - Ibtikar</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: linear-gradient(135deg, #F6DE55 0%, #00A3A3 50%, #000000 100%);
+                min-height: 100vh;
+                padding: 20px;
+                line-height: 1.6;
+            }
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 20px;
+                padding: 40px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            }
+            h1 {
+                color: #000000;
+                font-size: 36px;
+                margin-bottom: 10px;
+                font-weight: 900;
+            }
+            .app-name {
+                color: #00A3A3;
+                font-size: 24px;
+                margin-bottom: 30px;
+                font-weight: 700;
+            }
+            h2 {
+                color: #000000;
+                font-size: 24px;
+                margin-top: 30px;
+                margin-bottom: 15px;
+                font-weight: 700;
+                border-bottom: 3px solid #F6DE55;
+                padding-bottom: 10px;
+            }
+            .important {
+                background: #FFF3CD;
+                border-left: 5px solid #F6DE55;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 5px;
+            }
+            .important h3 {
+                color: #856404;
+                margin-bottom: 10px;
+                font-size: 20px;
+            }
+            .steps {
+                background: #E7F3FF;
+                border-left: 5px solid #00A3A3;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 5px;
+            }
+            .steps ol {
+                margin-left: 20px;
+                margin-top: 10px;
+            }
+            .steps li {
+                margin: 10px 0;
+                font-size: 16px;
+            }
+            .data-section {
+                background: #F8F9FA;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 5px;
+                border: 2px solid #E0E0E0;
+            }
+            .data-section h3 {
+                color: #000000;
+                margin-bottom: 15px;
+                font-size: 20px;
+            }
+            .data-list {
+                list-style: none;
+                margin-left: 0;
+            }
+            .data-list li {
+                padding: 10px 0;
+                border-bottom: 1px solid #E0E0E0;
+            }
+            .data-list li:last-child {
+                border-bottom: none;
+            }
+            .deleted {
+                color: #28A745;
+                font-weight: 600;
+            }
+            .kept {
+                color: #DC3545;
+                font-weight: 600;
+            }
+            .contact {
+                background: #000000;
+                color: white;
+                padding: 20px;
+                margin: 30px 0;
+                border-radius: 10px;
+                text-align: center;
+            }
+            .contact a {
+                color: #F6DE55;
+                text-decoration: none;
+                font-weight: 700;
+                font-size: 18px;
+            }
+            .contact a:hover {
+                text-decoration: underline;
+            }
+            p {
+                margin: 15px 0;
+                font-size: 16px;
+                color: #333;
+            }
+            .warning {
+                background: #F8D7DA;
+                border-left: 5px solid #DC3545;
+                padding: 15px;
+                margin: 20px 0;
+                border-radius: 5px;
+                color: #721C24;
+            }
+            .note {
+                background: #D1ECF1;
+                border-left: 5px solid #00A3A3;
+                padding: 15px;
+                margin: 20px 0;
+                border-radius: 5px;
+                color: #0C5460;
+                font-size: 14px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Delete Your Account</h1>
+            <p class="app-name">Ibtikar - AI-Powered Social Safety</p>
+            
+            <div class="important">
+                <h3>⚠️ Important: Account Deletion Request</h3>
+                <p>To request deletion of your Ibtikar account and associated data, please follow the steps below. 
+                Your request will be processed within 30 days as required by Google Play Store policies.</p>
+            </div>
+
+            <h2>How to Request Account Deletion</h2>
+            <div class="steps">
+                <ol>
+                    <li><strong>Open the Ibtikar app</strong> on your device</li>
+                    <li><strong>Log in</strong> to your account if you haven't already</li>
+                    <li><strong>Navigate to Settings</strong> (if available) or contact us directly using the method below</li>
+                    <li><strong>Submit your deletion request</strong> with your user ID or Twitter/X handle</li>
+                    <li><strong>Confirm your request</strong> - you will receive confirmation within 48 hours</li>
+                    <li><strong>Account deletion</strong> will be completed within 30 days of your request</li>
+                </ol>
+            </div>
+
+            <h2>Contact Us to Request Deletion</h2>
+            <div class="contact">
+                <p><strong>Email us at:</strong></p>
+                <p><a href="mailto:privacy@ibtikar.app?subject=Account%20Deletion%20Request">privacy@ibtikar.app</a></p>
+                <p style="margin-top: 15px; font-size: 14px; opacity: 0.9;">
+                    Please include your user ID or Twitter/X handle in your request
+                </p>
+            </div>
+
+            <h2>What Data Will Be Deleted</h2>
+            <div class="data-section">
+                <h3>Data That Will Be Deleted:</h3>
+                <ul class="data-list">
+                    <li class="deleted">✅ <strong>User Account Information</strong> - Your user profile and account details</li>
+                    <li class="deleted">✅ <strong>OAuth Tokens</strong> - Encrypted Twitter/X authentication tokens</li>
+                    <li class="deleted">✅ <strong>Analysis Predictions</strong> - All toxicity analysis results and predictions associated with your account</li>
+                    <li class="deleted">✅ <strong>Post Data</strong> - All cached post content and metadata</li>
+                    <li class="deleted">✅ <strong>Author Analytics</strong> - All author summaries and statistics</li>
+                    <li class="deleted">✅ <strong>Account Settings</strong> - All app preferences and configurations</li>
+                </ul>
+            </div>
+
+            <h2>Data Retention Period</h2>
+            <div class="warning">
+                <p><strong>Deletion Timeline:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Account deletion requests are processed within <strong>30 days</strong> of receipt</li>
+                    <li>All personal data associated with your account will be permanently deleted</li>
+                    <li>You will receive email confirmation once deletion is complete</li>
+                </ul>
+            </div>
+
+            <h2>Data That Cannot Be Deleted</h2>
+            <div class="data-section">
+                <h3>Please Note:</h3>
+                <ul class="data-list">
+                    <li class="kept">⚠️ <strong>Anonymized Analytics</strong> - Aggregated, anonymized usage statistics (no personal identifiers)</li>
+                    <li class="kept">⚠️ <strong>Legal Records</strong> - Any data required to be retained by law or for legal compliance</li>
+                </ul>
+                <p style="margin-top: 15px; font-size: 14px;">
+                    <em>Note: We do not collect or store personal information beyond what is necessary for app functionality. 
+                    We do not track users across other apps or websites.</em>
+                </p>
+            </div>
+
+            <h2>After Account Deletion</h2>
+            <div class="note">
+                <p><strong>What happens after deletion:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>You will no longer be able to log in to the Ibtikar app</li>
+                    <li>All your data will be permanently removed from our systems</li>
+                    <li>You can create a new account at any time by logging in again</li>
+                    <li>Your Twitter/X account is not affected - only the connection to Ibtikar is removed</li>
+                </ul>
+            </div>
+
+            <div class="note" style="margin-top: 40px; text-align: center;">
+                <p><strong>Ibtikar App</strong></p>
+                <p>Empowering users with digital safety and social entrepreneurship</p>
+                <p style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
+                    For questions about this process, contact: <a href="mailto:privacy@ibtikar.app" style="color: #00A3A3;">privacy@ibtikar.app</a>
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+
+@app.delete("/v1/account/delete")
+async def delete_account(
+    user_id: int = Query(..., description="User ID of the account to delete"),
+    confirm: bool = Query(False, description="Confirmation flag - must be True to proceed"),
+    db: Session = Depends(get_db),
+):
+    """
+    Delete a user account and all associated data.
+    
+    This endpoint deletes:
+    - User account record
+    - OAuth tokens (cascade delete)
+    - All predictions/analysis data (cascade delete)
+    
+    Args:
+        user_id: The ID of the user account to delete
+        confirm: Must be True to proceed with deletion (safety check)
+        
+    Returns:
+        JSON response confirming deletion
+    """
+    if not confirm:
+        raise HTTPException(
+            status_code=400,
+            detail="Deletion requires explicit confirmation. Set confirm=true in query parameters."
+        )
+    
+    # Find the user
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User with ID {user_id} not found")
+    
+    # Store user info for logging
+    user_handle = user.handle or f"user_{user_id}"
+    
+    try:
+        # Delete the user - cascade will handle tokens and predictions
+        # Due to cascade="all, delete-orphan" in the relationships,
+        # deleting the user will automatically delete:
+        # - All XToken records
+        # - All Prediction records
+        db.delete(user)
+        db.commit()
+        
+        print(f"✅ Account deleted successfully: user_id={user_id}, handle={user_handle}")
+        
+        return {
+            "success": True,
+            "message": f"Account {user_id} and all associated data have been deleted",
+            "deleted_user_id": user_id,
+            "deleted_at": datetime.utcnow().isoformat(),
+            "deleted_data": {
+                "user_account": True,
+                "oauth_tokens": True,
+                "predictions": True,
+                "analytics": True
+            }
+        }
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error deleting account {user_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error deleting account: {str(e)}"
+        )
