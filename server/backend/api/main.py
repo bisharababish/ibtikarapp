@@ -759,7 +759,7 @@ async def analysis_preview(
 
 
 @app.get("/delete-account", response_class=HTMLResponse)
-def delete_account_page():
+async def delete_account_page():
     """
     Account deletion request page for Google Play Store compliance.
     This page prominently displays how users can request account deletion.
@@ -1076,7 +1076,7 @@ async def delete_account(
 
 
 @app.get("/privacy-policy", response_class=HTMLResponse)
-def privacy_policy_page():
+async def privacy_policy_page():
     """
     Privacy Policy page for App Store and Play Store compliance.
     This page explains how Ibtikar collects, uses, and protects user data.
