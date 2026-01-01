@@ -938,7 +938,7 @@ async def delete_account_page():
             <h2>Contact Us to Request Deletion</h2>
             <div class="contact">
                 <p><strong>Email us at:</strong></p>
-                <p><a href="mailto:privacy@ibtikar.app?subject=Account%20Deletion%20Request">privacy@ibtikar.app</a></p>
+                <p><a href="mailto:ibtikarpal@gmail.com?subject=Account%20Deletion%20Request">ibtikarpal@gmail.com</a></p>
                 <p style="margin-top: 15px; font-size: 14px; opacity: 0.9;">
                     Please include your user ID or Twitter/X handle in your request
                 </p>
@@ -995,7 +995,7 @@ async def delete_account_page():
                 <p><strong>Ibtikar App</strong></p>
                 <p>Empowering users with digital safety and social entrepreneurship</p>
                 <p style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
-                    For questions about this process, contact: <a href="mailto:privacy@ibtikar.app" style="color: #00A3A3;">privacy@ibtikar.app</a>
+                    For questions about this process, contact: <a href="mailto:ibtikarpal@gmail.com" style="color: #00A3A3;">ibtikarpal@gmail.com</a>
                 </p>
             </div>
         </div>
@@ -1325,12 +1325,12 @@ async def privacy_policy_page():
                 <p>You can request deletion of your account and all associated data at any time:</p>
                 <ul>
                     <li>Visit: <a href="/delete-account">Delete Account Page</a></li>
-                    <li>Email us at: <a href="mailto:privacy@ibtikar.app">privacy@ibtikar.app</a></li>
+                    <li>Email us at: <a href="mailto:ibtikarpal@gmail.com">ibtikarpal@gmail.com</a></li>
                     <li>Account deletion requests are processed within 30 days</li>
                 </ul>
 
                 <h3>6.2 Data Access</h3>
-                <p>You can request access to the data we have about you by contacting us at <a href="mailto:privacy@ibtikar.app">privacy@ibtikar.app</a></p>
+                <p>You can request access to the data we have about you by contacting us at <a href="mailto:ibtikarpal@gmail.com">ibtikarpal@gmail.com</a></p>
 
                 <h3>6.3 Revoke Access</h3>
                 <p>You can revoke Ibtikar's access to your Twitter/X account at any time through your Twitter/X account settings.</p>
@@ -1376,7 +1376,7 @@ async def privacy_policy_page():
                 <div class="contact-box">
                     <p><strong>If you have questions about this Privacy Policy, please contact us:</strong></p>
                     <p style="margin-top: 15px;">
-                        <strong>Email:</strong> <a href="mailto:privacy@ibtikar.app">privacy@ibtikar.app</a>
+                        <strong>Email:</strong> <a href="mailto:ibtikarpal@gmail.com">ibtikarpal@gmail.com</a>
                     </p>
                     <p style="margin-top: 10px; font-size: 14px; opacity: 0.9;">
                         We will respond to your inquiry within 48 hours.
