@@ -954,3 +954,329 @@ async def delete_account(
             status_code=500,
             detail=f"Error deleting account: {str(e)}"
         )
+
+
+# ---------- Privacy Policy Endpoint ----------
+
+
+@app.get("/privacy-policy", response_class=HTMLResponse)
+def privacy_policy_page():
+    """
+    Privacy Policy page for App Store and Play Store compliance.
+    This page explains how Ibtikar collects, uses, and protects user data.
+    """
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Privacy Policy - Ibtikar</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: linear-gradient(135deg, #F6DE55 0%, #00A3A3 50%, #000000 100%);
+                min-height: 100vh;
+                padding: 20px;
+                line-height: 1.8;
+            }
+            .container {
+                max-width: 900px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 20px;
+                padding: 50px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            }
+            h1 {
+                color: #000000;
+                font-size: 42px;
+                margin-bottom: 15px;
+                font-weight: 900;
+                text-align: center;
+            }
+            .app-name {
+                color: #00A3A3;
+                font-size: 24px;
+                margin-bottom: 40px;
+                font-weight: 700;
+                text-align: center;
+            }
+            .last-updated {
+                text-align: center;
+                color: #666;
+                font-size: 14px;
+                margin-bottom: 40px;
+                font-style: italic;
+            }
+            h2 {
+                color: #000000;
+                font-size: 28px;
+                margin-top: 40px;
+                margin-bottom: 20px;
+                font-weight: 700;
+                border-bottom: 3px solid #F6DE55;
+                padding-bottom: 10px;
+            }
+            h3 {
+                color: #00A3A3;
+                font-size: 20px;
+                margin-top: 25px;
+                margin-bottom: 15px;
+                font-weight: 600;
+            }
+            p {
+                margin: 15px 0;
+                font-size: 16px;
+                color: #333;
+            }
+            ul, ol {
+                margin: 15px 0;
+                margin-left: 30px;
+            }
+            li {
+                margin: 10px 0;
+                font-size: 16px;
+                color: #333;
+            }
+            .highlight {
+                background: #FFF3CD;
+                border-left: 5px solid #F6DE55;
+                padding: 20px;
+                margin: 25px 0;
+                border-radius: 5px;
+            }
+            .info-box {
+                background: #E7F3FF;
+                border-left: 5px solid #00A3A3;
+                padding: 20px;
+                margin: 25px 0;
+                border-radius: 5px;
+            }
+            .contact-box {
+                background: #000000;
+                color: white;
+                padding: 25px;
+                margin: 40px 0;
+                border-radius: 10px;
+                text-align: center;
+            }
+            .contact-box a {
+                color: #F6DE55;
+                text-decoration: none;
+                font-weight: 700;
+                font-size: 18px;
+            }
+            .contact-box a:hover {
+                text-decoration: underline;
+            }
+            .section {
+                margin: 30px 0;
+            }
+            strong {
+                color: #000000;
+                font-weight: 700;
+            }
+            a {
+                color: #00A3A3;
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Privacy Policy</h1>
+            <p class="app-name">Ibtikar - AI-Powered Social Safety</p>
+            <p class="last-updated">Last Updated: """ + datetime.now().strftime("%B %d, %Y") + """</p>
+
+            <div class="highlight">
+                <p><strong>Ibtikar</strong> ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application.</p>
+            </div>
+
+            <div class="section">
+                <h2>1. Information We Collect</h2>
+                
+                <h3>1.1 Account Information</h3>
+                <p>When you log in to Ibtikar using Twitter/X OAuth:</p>
+                <ul>
+                    <li><strong>Twitter/X Profile Data</strong>: Your Twitter/X username, display name, and profile information</li>
+                    <li><strong>OAuth Tokens</strong>: Encrypted authentication tokens to access your Twitter/X account (stored securely using Fernet encryption)</li>
+                    <li><strong>User ID</strong>: A unique identifier assigned to your account</li>
+                </ul>
+
+                <h3>1.2 Content Analysis Data</h3>
+                <p>To provide toxicity analysis services, we collect and analyze:</p>
+                <ul>
+                    <li><strong>Social Media Posts</strong>: Posts from accounts you follow on Twitter/X</li>
+                    <li><strong>Analysis Results</strong>: Toxicity predictions and scores generated by our AI model</li>
+                    <li><strong>Metadata</strong>: Post IDs, author IDs, languages, and timestamps</li>
+                </ul>
+
+                <h3>1.3 Technical Information</h3>
+                <ul>
+                    <li><strong>Device Information</strong>: Basic device information necessary for app functionality</li>
+                    <li><strong>Usage Data</strong>: Information about how you interact with the app (anonymized)</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>2. How We Use Your Information</h2>
+                <p>We use the information we collect to:</p>
+                <ul>
+                    <li>Authenticate your account via Twitter/X OAuth</li>
+                    <li>Fetch and analyze social media content from accounts you follow</li>
+                    <li>Provide toxicity analysis and safety recommendations</li>
+                    <li>Generate analytics and insights about content patterns</li>
+                    <li>Improve and maintain our services</li>
+                    <li>Respond to your requests and provide customer support</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>3. Third-Party Services</h2>
+                
+                <h3>3.1 Twitter/X API</h3>
+                <div class="info-box">
+                    <p>Ibtikar integrates with <strong>Twitter/X API</strong> to:</p>
+                    <ul>
+                        <li>Authenticate your account via OAuth 2.0</li>
+                        <li>Fetch posts from accounts you follow</li>
+                        <li>Access your basic profile information</li>
+                    </ul>
+                    <p><strong>Your use of Twitter/X is subject to Twitter's Privacy Policy:</strong> <a href="https://twitter.com/privacy" target="_blank">https://twitter.com/privacy</a></p>
+                </div>
+
+                <h3>3.2 Hugging Face API</h3>
+                <div class="info-box">
+                    <p>We use <strong>Hugging Face</strong> services to:</p>
+                    <ul>
+                        <li>Run AI-powered toxicity analysis on social media content</li>
+                        <li>Classify content as safe, harmful, or unknown</li>
+                    </ul>
+                    <p><strong>Your use of our AI analysis is subject to Hugging Face's Terms:</strong> <a href="https://huggingface.co/terms" target="_blank">https://huggingface.co/terms</a></p>
+                </div>
+
+                <h3>3.3 Data Sharing</h3>
+                <p>We <strong>do not sell, trade, or rent</strong> your personal information to third parties. We only share data as necessary to provide our services:</p>
+                <ul>
+                    <li>Content is sent to Hugging Face API for AI analysis (content only, not your personal information)</li>
+                    <li>OAuth tokens are used to fetch data from Twitter/X API</li>
+                    <li>All data sharing is done securely via encrypted HTTPS connections</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>4. Data Storage and Security</h2>
+                
+                <h3>4.1 Data Storage</h3>
+                <ul>
+                    <li>Your data is stored in secure databases</li>
+                    <li>OAuth tokens are encrypted using Fernet encryption before storage</li>
+                    <li>All data is stored on secure servers with appropriate access controls</li>
+                </ul>
+
+                <h3>4.2 Data Security</h3>
+                <ul>
+                    <li>All data transmission is encrypted using HTTPS/TLS</li>
+                    <li>OAuth tokens are encrypted at rest using industry-standard encryption</li>
+                    <li>We implement security measures to protect against unauthorized access</li>
+                    <li>Regular security reviews and updates are performed</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>5. Data Retention</h2>
+                <ul>
+                    <li>We retain your data for as long as your account is active</li>
+                    <li>Analysis results and cached content are stored to provide historical insights</li>
+                    <li>When you delete your account, all associated data is permanently deleted within 30 days</li>
+                    <li>Some anonymized, aggregated data may be retained for analytics purposes (no personal identifiers)</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>6. Your Rights and Choices</h2>
+                
+                <h3>6.1 Account Deletion</h3>
+                <p>You can request deletion of your account and all associated data at any time:</p>
+                <ul>
+                    <li>Visit: <a href="/delete-account">Delete Account Page</a></li>
+                    <li>Email us at: <a href="mailto:privacy@ibtikar.app">privacy@ibtikar.app</a></li>
+                    <li>Account deletion requests are processed within 30 days</li>
+                </ul>
+
+                <h3>6.2 Data Access</h3>
+                <p>You can request access to the data we have about you by contacting us at <a href="mailto:privacy@ibtikar.app">privacy@ibtikar.app</a></p>
+
+                <h3>6.3 Revoke Access</h3>
+                <p>You can revoke Ibtikar's access to your Twitter/X account at any time through your Twitter/X account settings.</p>
+            </div>
+
+            <div class="section">
+                <h2>7. Children's Privacy</h2>
+                <p>Ibtikar is not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe we have collected information from a child under 13, please contact us immediately.</p>
+            </div>
+
+            <div class="section">
+                <h2>8. International Data Transfers</h2>
+                <p>Your information may be transferred to and processed in countries other than your country of residence. These countries may have data protection laws that differ from your country. By using Ibtikar, you consent to the transfer of your information to these countries.</p>
+            </div>
+
+            <div class="section">
+                <h2>9. Changes to This Privacy Policy</h2>
+                <p>We may update this Privacy Policy from time to time. We will notify you of any changes by:</p>
+                <ul>
+                    <li>Posting the new Privacy Policy on this page</li>
+                    <li>Updating the "Last Updated" date at the top of this policy</li>
+                    <li>Notifying you through the app or via email for significant changes</li>
+                </ul>
+                <p>You are advised to review this Privacy Policy periodically for any changes.</p>
+            </div>
+
+            <div class="section">
+                <h2>10. Tracking and Analytics</h2>
+                <div class="info-box">
+                    <p><strong>Ibtikar does NOT:</strong></p>
+                    <ul>
+                        <li>Track users across other apps or websites</li>
+                        <li>Use tracking cookies or tracking technologies</li>
+                        <li>Share data with advertisers or data brokers</li>
+                        <li>Collect information for marketing purposes</li>
+                    </ul>
+                    <p>We only collect the minimum data necessary to provide our safety analysis services.</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>11. Contact Us</h2>
+                <div class="contact-box">
+                    <p><strong>If you have questions about this Privacy Policy, please contact us:</strong></p>
+                    <p style="margin-top: 15px;">
+                        <strong>Email:</strong> <a href="mailto:privacy@ibtikar.app">privacy@ibtikar.app</a>
+                    </p>
+                    <p style="margin-top: 10px; font-size: 14px; opacity: 0.9;">
+                        We will respond to your inquiry within 48 hours.
+                    </p>
+                </div>
+            </div>
+
+            <div class="section" style="margin-top: 50px; padding-top: 30px; border-top: 2px solid #E0E0E0;">
+                <p style="text-align: center; color: #666; font-size: 14px;">
+                    <strong>Ibtikar App</strong><br>
+                    Empowering users with digital safety and social entrepreneurship<br>
+                    <span style="margin-top: 10px; display: block;">© """ + datetime.now().strftime("%Y") + """ Ibtikar. All rights reserved.</span>
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
