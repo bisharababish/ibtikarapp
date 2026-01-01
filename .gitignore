@@ -41,3 +41,6 @@ app-example
 # generated native folders
 /ios
 /android
+
+# LFS files (stored elsewhere)
+server/IbtikarAI/arabert_toxic_classifier/model.safetensors
