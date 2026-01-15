@@ -1,7 +1,7 @@
 import base64, hashlib, os
 from typing import Dict, Any
 import httpx
-from backend.core.config import settings
+from ..core.config import settings
 
 AUTH_URL = "https://twitter.com/i/oauth2/authorize"
 TOKEN_URL = "https://api.twitter.com/2/oauth2/token"
