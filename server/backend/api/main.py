@@ -16,7 +16,7 @@ from ..clients.x_client import generate_pkce, build_auth_url, exchange_code_for_
 from ..core.schemas import AnalysisResponse, AnalysisItem
 from ..core.normalize import x_tweets_to_posts
 from ..clients.ibtikar_client import analyze_texts
-from backend.db.models import Prediction  # keep as-is since it already works
+from ..db.models import Prediction
 from ..clients.x_api import get_me, get_my_recent_tweets, get_following_feed
 
 from typing import List, Optional
