@@ -3,8 +3,8 @@ import { checkLinkStatus, getOAuthStartUrl, getTwitterUser } from "@/utils/api";
 import createContextHook from "@nkzw/create-context-hook";
 // @ts-ignore - Package is installed, TypeScript types may not be resolved
 import * as WebBrowser from "expo-web-browser";
-import { useCallback, useMemo, useState } from "react";
-import { Alert, Linking } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, AppState, Linking } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -115,6 +115,81 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             Alert.alert("❌ Error", "Failed to open Twitter login. Please try again.");
         }
     }, [isLoggingIn]);
+
+    // Listen for deep links (OAuth callback) - catches ibtikar://oauth/callback when user clicks "Allow"
+    useEffect(() => {
+        console.log("🔧 Deep link listener initialized");
+
+        const handleDeepLink = (url: string | null) => {
+            console.log("🔍 handleDeepLink called with URL:", url);
+            if (url && url.startsWith("ibtikar://oauth/callback")) {
+                console.log("✅ Valid deep link detected:", url);
+                try {
+                    const params = new URLSearchParams(url.split("?")[1] || "");
+                    console.log("📋 Parsed params:", Object.fromEntries(params.entries()));
+
+                    if (params.get("success") === "true" && params.get("user_id")) {
+                        const userId = parseInt(params.get("user_id") || "1", 10);
+                        console.log("✅ OAuth callback successful, logging in user:", userId);
+                        fetchAndSetUser(userId);
+                    } else if (params.get("error")) {
+                        console.log("❌ OAuth error:", params.get("error"));
+                        setIsLoggingIn(false);
+                        setPollingStatus("");
+                        Alert.alert("❌ OAuth Error", `Authorization failed: ${params.get("error")}`);
+                    } else {
+                        console.log("⚠️ Deep link missing success/user_id params");
+                    }
+                } catch (error) {
+                    console.error("❌ Error parsing deep link:", error);
+                    Alert.alert("❌ Error", "Failed to parse OAuth callback");
+                }
+            } else if (url) {
+                console.log("⚠️ URL received but doesn't match ibtikar://oauth/callback:", url);
+            }
+        };
+
+        // Check for initial URL when app opens
+        Linking.getInitialURL().then((url) => {
+            console.log("🔍 Initial URL check:", url);
+            handleDeepLink(url);
+        }).catch((error) => {
+            console.error("❌ Error getting initial URL:", error);
+        });
+
+        // Listen for deep links while app is running
+        const subscription = Linking.addEventListener("url", (event) => {
+            console.log("🔗 URL event listener triggered:", event.url);
+            handleDeepLink(event.url);
+        });
+
+        // Also check when app comes to foreground (important for OAuth callbacks)
+        const appStateSubscription = AppState.addEventListener("change", (nextAppState) => {
+            console.log("📱 App state changed to:", nextAppState);
+            if (nextAppState === "active") {
+                // Check for deep link when app becomes active
+                setTimeout(() => {
+                    Linking.getInitialURL().then((url) => {
+                        console.log("🔍 Checking URL on app active:", url);
+                        handleDeepLink(url);
+                    }).catch((error) => {
+                        console.error("❌ Error getting URL on app active:", error);
+                    });
+                }, 500); // Small delay to ensure app is fully active
+            }
+        });
+
+        // Test if deep link scheme is supported
+        Linking.canOpenURL("ibtikar://oauth/callback").then((canOpen) => {
+            console.log("🔧 Can open ibtikar:// scheme?", canOpen);
+        });
+
+        return () => {
+            console.log("🔧 Cleaning up deep link listeners");
+            subscription.remove();
+            appStateSubscription.remove();
+        };
+    }, [fetchAndSetUser]);
 
     // Manual check - simple and direct
     const manualCheckStatus = useCallback(async () => {

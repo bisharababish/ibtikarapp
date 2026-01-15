@@ -2,9 +2,7 @@ from datetime import datetime
 import time
 
 from fastapi import FastAPI, Depends, HTTPException, Query, Request
-from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
-from pathlib import Path
+from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 
@@ -18,7 +16,7 @@ from ..clients.x_client import generate_pkce, build_auth_url, exchange_code_for_
 from ..core.schemas import AnalysisResponse, AnalysisItem
 from ..core.normalize import x_tweets_to_posts
 from ..clients.ibtikar_client import analyze_texts
-from ..db.models import Prediction
+from backend.db.models import Prediction  # keep as-is since it already works
 from ..clients.x_api import get_me, get_my_recent_tweets, get_following_feed
 
 from typing import List, Optional
@@ -65,120 +63,6 @@ class AuthorSummaryResponse(BaseModel):
 
 app = FastAPI(title="IbtikarAI Backend", version="0.2.0")
 init_db()  # create tables on startup (local dev)
-
-# ---------- Static files for Play Console documentation ----------
-# Get the path to the static directory (server/static)
-# Try multiple possible paths to handle different deployment scenarios
-import os
-import logging
-
-logger = logging.getLogger(__name__)
-
-# Try multiple paths in order of likelihood
-possible_paths = [
-    # Path relative to this file (most common)
-    Path(__file__).parent.parent.parent / "static",  # server/backend/api -> server/static
-    # Paths relative to current working directory
-    Path(os.getcwd()) / "server" / "static",
-    Path(os.getcwd()) / "static",
-    # Absolute paths from common Render structures
-    Path("/opt/render/project/src/server/static"),
-    Path("/app/server/static"),
-    # Relative paths as last resort
-    Path("server/static"),
-    Path("static"),
-]
-
-static_dir = None
-for path in possible_paths:
-    if path.exists() and (path / "privacy-policy.html").exists():
-        static_dir = path
-        logger.info(f"Found static directory at: {static_dir.absolute()}")
-        break
-
-if static_dir and static_dir.exists():
-    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
-    logger.info(f"Mounted static files from: {static_dir.absolute()}")
-else:
-    logger.warning(f"Static directory not found! Tried paths: {[str(p) for p in possible_paths]}")
-    logger.warning(f"Current working directory: {os.getcwd()}")
-    logger.warning(f"__file__ location: {__file__}")
-    # Create a dummy static_dir to prevent errors
-    static_dir = Path(__file__).parent.parent.parent / "static"
-
-# Direct routes for easy access (for Play Console)
-@app.get("/privacy-policy.html")
-async def privacy_policy():
-    """Privacy Policy page for Google Play Console"""
-    # Try multiple possible locations
-    possible_files = [
-        static_dir / "privacy-policy.html",
-        Path(os.getcwd()) / "server" / "static" / "privacy-policy.html",
-        Path(os.getcwd()) / "static" / "privacy-policy.html",
-        Path(__file__).parent.parent.parent / "static" / "privacy-policy.html",
-    ]
-    
-    for file_path in possible_files:
-        if file_path.exists():
-            logger.info(f"Serving privacy-policy.html from: {file_path.absolute()}")
-            return FileResponse(file_path, media_type="text/html")
-    
-    logger.error(f"Privacy policy not found! Tried: {[str(p) for p in possible_files]}")
-    logger.error(f"CWD: {os.getcwd()}, __file__: {__file__}")
-    raise HTTPException(status_code=404, detail=f"Privacy policy not found. CWD: {os.getcwd()}")
-
-@app.get("/delete-account.html")
-async def delete_account():
-    """Delete Account page for Google Play Console"""
-    # Try multiple possible locations
-    possible_files = [
-        static_dir / "delete-account.html",
-        Path(os.getcwd()) / "server" / "static" / "delete-account.html",
-        Path(os.getcwd()) / "static" / "delete-account.html",
-        Path(__file__).parent.parent.parent / "static" / "delete-account.html",
-    ]
-    
-    for file_path in possible_files:
-        if file_path.exists():
-            logger.info(f"Serving delete-account.html from: {file_path.absolute()}")
-            return FileResponse(file_path, media_type="text/html")
-    
-    logger.error(f"Delete account page not found! Tried: {[str(p) for p in possible_files]}")
-    logger.error(f"CWD: {os.getcwd()}, __file__: {__file__}")
-    raise HTTPException(status_code=404, detail=f"Delete account page not found. CWD: {os.getcwd()}")
-
-@app.get("/debug/static-paths")
-async def debug_static_paths():
-    """Debug endpoint to check static file paths (remove in production)"""
-    import os
-    from pathlib import Path
-    
-    info = {
-        "cwd": os.getcwd(),
-        "__file__": __file__,
-        "static_dir": str(static_dir) if static_dir else None,
-        "static_dir_exists": static_dir.exists() if static_dir else False,
-        "possible_paths": []
-    }
-    
-    possible_paths = [
-        Path(__file__).parent.parent.parent / "static",
-        Path(os.getcwd()) / "server" / "static",
-        Path(os.getcwd()) / "static",
-        Path("server/static"),
-        Path("static"),
-    ]
-    
-    for path in possible_paths:
-        info["possible_paths"].append({
-            "path": str(path),
-            "absolute": str(path.absolute()),
-            "exists": path.exists(),
-            "has_privacy": (path / "privacy-policy.html").exists() if path.exists() else False,
-            "has_delete": (path / "delete-account.html").exists() if path.exists() else False,
-        })
-    
-    return info
 
 # ---------- Analysis read endpoints ----------
 
@@ -430,18 +314,17 @@ async def x_oauth_callback(
     existing = db.query(models.XToken).filter(models.XToken.user_id == user_id).first()
     if not existing:
         print("💾 Creating new XToken record")
-        db.add(
-            models.XToken(
-                user_id=user_id,
-                access_token=enc(token.get("access_token", "")),
-                refresh_token=enc(token.get("refresh_token", ""))
-                if token.get("refresh_token")
-                else None,
-                scope=token.get("scope"),
-                token_type=token.get("token_type"),
-                expires_in=token.get("expires_in"),
-            )
+        new_token = models.XToken(
+            user_id=user_id,
+            access_token=enc(token.get("access_token", "")),
+            refresh_token=enc(token.get("refresh_token", ""))
+            if token.get("refresh_token")
+            else None,
+            scope=token.get("scope"),
+            token_type=token.get("token_type"),
+            expires_in=token.get("expires_in"),
         )
+        db.add(new_token)
     else:
         print("💾 Updating existing XToken record")
         existing.access_token = enc(token.get("access_token", ""))
@@ -454,8 +337,20 @@ async def x_oauth_callback(
         existing.token_type = token.get("token_type")
         existing.expires_in = token.get("expires_in")
 
-    db.commit()
-    print("✅ Database updated successfully")
+    try:
+        db.commit()
+        print("✅ Database updated successfully")
+        
+        # Verify the token was saved
+        verify_token = db.query(models.XToken).filter(models.XToken.user_id == user_id).first()
+        if verify_token:
+            print(f"✅ Verification: Token exists for user_id={user_id}, scope={verify_token.scope}")
+        else:
+            print(f"❌ Verification FAILED: Token not found for user_id={user_id}")
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Database commit failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to save tokens: {str(e)}")
     
     # Check if this is a web request (by checking Referer or User-Agent)
     is_web_request = False
@@ -531,6 +426,26 @@ async def x_oauth_callback(
                 border-radius: 10px;
                 margin: 20px 0;
             }}
+            .open-button {{
+                background: #00A3A3;
+                color: white;
+                border: none;
+                padding: 16px 32px;
+                font-size: 18px;
+                font-weight: bold;
+                border-radius: 28px;
+                cursor: pointer;
+                margin-top: 20px;
+                box-shadow: 0 4px 12px rgba(0, 163, 163, 0.4);
+                transition: all 0.3s;
+            }}
+            .open-button:hover {{
+                background: #008080;
+                transform: scale(1.05);
+            }}
+            .open-button:active {{
+                transform: scale(0.95);
+            }}
         </style>
     </head>
     <body>
@@ -542,23 +457,20 @@ async def x_oauth_callback(
                 <p><strong>User ID:</strong> {user_id}</p>
                 <p><strong>Status:</strong> Account Linked</p>
             </div>
-            <p style="font-size: 14px; opacity: 0.8;">
-                You can now close this page and return to the app.<br>
-                The app will automatically detect your login.
+            <div style="background: rgba(255, 255, 255, 0.15); padding: 20px; border-radius: 10px; margin: 20px 0; text-align: left;">
+                <h3 style="font-size: 18px; margin-bottom: 15px;">📱 Next Steps:</h3>
+                <ol style="margin-left: 20px; font-size: 16px; line-height: 1.8;">
+                    <li><strong>Close this browser tab</strong></li>
+                    <li><strong>Return to the Ibtikar app</strong></li>
+                    <li><strong>Click the "✅ I Authorized - Check Status" button</strong></li>
+                    <li><strong>You will be logged in automatically!</strong></li>
+                </ol>
+            </div>
+            <p style="font-size: 14px; opacity: 0.9; margin-top: 20px;">
+                ✅ Your account is now linked!<br>
+                Just use the manual check button in the app.
             </p>
         </div>
-        <script>
-            // Try to open the app via deep link
-            const deepLink = "ibtikar://oauth/callback?success=true&user_id={user_id}";
-            
-            // Try opening the deep link
-            setTimeout(() => {{
-                window.location.href = deepLink;
-            }}, 500);
-            
-            // Also log for debugging
-            console.log("Attempting to open:", deepLink);
-        </script>
     </body>
     </html>
     """
@@ -570,10 +482,33 @@ async def x_oauth_callback(
 
 @app.get("/v1/me/link-status")
 def link_status(user_id: int = 1, db: Session = Depends(get_db)):
+    print("=" * 80)
+    print(f"🔍 Checking link status for user_id={user_id}")
+    
+    # Check if user exists
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    print(f"👤 User exists: {bool(user)}")
+    
+    # Check for tokens
     xt = db.query(models.XToken).filter(models.XToken.user_id == user_id).first()
+    is_linked = bool(xt)
+    
+    if xt:
+        print(f"✅ Token found: scope={xt.scope}, created_at={xt.created_at}")
+    else:
+        print(f"❌ No token found for user_id={user_id}")
+        # Check if there are any tokens at all
+        all_tokens = db.query(models.XToken).all()
+        print(f"📊 Total tokens in database: {len(all_tokens)}")
+        if all_tokens:
+            print(f"📊 Token user_ids: {[t.user_id for t in all_tokens]}")
+    
+    print(f"📊 Link status result: linked={is_linked}")
+    print("=" * 80)
+    
     return {
         "user_id": user_id,
-        "linked": bool(xt),
+        "linked": is_linked,
         "scopes": xt.scope if xt else None,
     }
 
@@ -753,646 +688,3 @@ async def analysis_preview(
         safe_count=sc,
         unknown_count=uc,
     )
-
-
-# ---------- Account Deletion Endpoints ----------
-
-
-@app.get("/delete-account", response_class=HTMLResponse)
-async def delete_account_page():
-    """
-    Account deletion request page for Google Play Store compliance.
-    This page prominently displays how users can request account deletion.
-    """
-    html_content = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Delete Account - Ibtikar</title>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                background: linear-gradient(135deg, #F6DE55 0%, #00A3A3 50%, #000000 100%);
-                min-height: 100vh;
-                padding: 20px;
-                line-height: 1.6;
-            }
-            .container {
-                max-width: 800px;
-                margin: 0 auto;
-                background: white;
-                border-radius: 20px;
-                padding: 40px;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            }
-            h1 {
-                color: #000000;
-                font-size: 36px;
-                margin-bottom: 10px;
-                font-weight: 900;
-            }
-            .app-name {
-                color: #00A3A3;
-                font-size: 24px;
-                margin-bottom: 30px;
-                font-weight: 700;
-            }
-            h2 {
-                color: #000000;
-                font-size: 24px;
-                margin-top: 30px;
-                margin-bottom: 15px;
-                font-weight: 700;
-                border-bottom: 3px solid #F6DE55;
-                padding-bottom: 10px;
-            }
-            .important {
-                background: #FFF3CD;
-                border-left: 5px solid #F6DE55;
-                padding: 20px;
-                margin: 20px 0;
-                border-radius: 5px;
-            }
-            .important h3 {
-                color: #856404;
-                margin-bottom: 10px;
-                font-size: 20px;
-            }
-            .steps {
-                background: #E7F3FF;
-                border-left: 5px solid #00A3A3;
-                padding: 20px;
-                margin: 20px 0;
-                border-radius: 5px;
-            }
-            .steps ol {
-                margin-left: 20px;
-                margin-top: 10px;
-            }
-            .steps li {
-                margin: 10px 0;
-                font-size: 16px;
-            }
-            .data-section {
-                background: #F8F9FA;
-                padding: 20px;
-                margin: 20px 0;
-                border-radius: 5px;
-                border: 2px solid #E0E0E0;
-            }
-            .data-section h3 {
-                color: #000000;
-                margin-bottom: 15px;
-                font-size: 20px;
-            }
-            .data-list {
-                list-style: none;
-                margin-left: 0;
-            }
-            .data-list li {
-                padding: 10px 0;
-                border-bottom: 1px solid #E0E0E0;
-            }
-            .data-list li:last-child {
-                border-bottom: none;
-            }
-            .deleted {
-                color: #28A745;
-                font-weight: 600;
-            }
-            .kept {
-                color: #DC3545;
-                font-weight: 600;
-            }
-            .contact {
-                background: #000000;
-                color: white;
-                padding: 20px;
-                margin: 30px 0;
-                border-radius: 10px;
-                text-align: center;
-            }
-            .contact a {
-                color: #F6DE55;
-                text-decoration: none;
-                font-weight: 700;
-                font-size: 18px;
-            }
-            .contact a:hover {
-                text-decoration: underline;
-            }
-            p {
-                margin: 15px 0;
-                font-size: 16px;
-                color: #333;
-            }
-            .warning {
-                background: #F8D7DA;
-                border-left: 5px solid #DC3545;
-                padding: 15px;
-                margin: 20px 0;
-                border-radius: 5px;
-                color: #721C24;
-            }
-            .note {
-                background: #D1ECF1;
-                border-left: 5px solid #00A3A3;
-                padding: 15px;
-                margin: 20px 0;
-                border-radius: 5px;
-                color: #0C5460;
-                font-size: 14px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>Delete Your Account</h1>
-            <p class="app-name">Ibtikar - AI-Powered Social Safety</p>
-            
-            <div class="important">
-                <h3>⚠️ Important: Account Deletion Request</h3>
-                <p>To request deletion of your Ibtikar account and associated data, please follow the steps below. 
-                Your request will be processed within 30 days as required by Google Play Store policies.</p>
-            </div>
-
-            <h2>How to Request Account Deletion</h2>
-            <div class="steps">
-                <ol>
-                    <li><strong>Open the Ibtikar app</strong> on your device</li>
-                    <li><strong>Log in</strong> to your account if you haven't already</li>
-                    <li><strong>Navigate to Settings</strong> (if available) or contact us directly using the method below</li>
-                    <li><strong>Submit your deletion request</strong> with your user ID or Twitter/X handle</li>
-                    <li><strong>Confirm your request</strong> - you will receive confirmation within 48 hours</li>
-                    <li><strong>Account deletion</strong> will be completed within 30 days of your request</li>
-                </ol>
-            </div>
-
-            <h2>Contact Us to Request Deletion</h2>
-            <div class="contact">
-                <p><strong>Email us at:</strong></p>
-                <p><a href="mailto:ibtikarpal@gmail.com?subject=Account%20Deletion%20Request">ibtikarpal@gmail.com</a></p>
-                <p style="margin-top: 15px; font-size: 14px; opacity: 0.9;">
-                    Please include your user ID or Twitter/X handle in your request
-                </p>
-            </div>
-
-            <h2>What Data Will Be Deleted</h2>
-            <div class="data-section">
-                <h3>Data That Will Be Deleted:</h3>
-                <ul class="data-list">
-                    <li class="deleted">✅ <strong>User Account Information</strong> - Your user profile and account details</li>
-                    <li class="deleted">✅ <strong>OAuth Tokens</strong> - Encrypted Twitter/X authentication tokens</li>
-                    <li class="deleted">✅ <strong>Analysis Predictions</strong> - All toxicity analysis results and predictions associated with your account</li>
-                    <li class="deleted">✅ <strong>Post Data</strong> - All cached post content and metadata</li>
-                    <li class="deleted">✅ <strong>Author Analytics</strong> - All author summaries and statistics</li>
-                    <li class="deleted">✅ <strong>Account Settings</strong> - All app preferences and configurations</li>
-                </ul>
-            </div>
-
-            <h2>Data Retention Period</h2>
-            <div class="warning">
-                <p><strong>Deletion Timeline:</strong></p>
-                <ul style="margin-left: 20px; margin-top: 10px;">
-                    <li>Account deletion requests are processed within <strong>30 days</strong> of receipt</li>
-                    <li>All personal data associated with your account will be permanently deleted</li>
-                    <li>You will receive email confirmation once deletion is complete</li>
-                </ul>
-            </div>
-
-            <h2>Data That Cannot Be Deleted</h2>
-            <div class="data-section">
-                <h3>Please Note:</h3>
-                <ul class="data-list">
-                    <li class="kept">⚠️ <strong>Anonymized Analytics</strong> - Aggregated, anonymized usage statistics (no personal identifiers)</li>
-                    <li class="kept">⚠️ <strong>Legal Records</strong> - Any data required to be retained by law or for legal compliance</li>
-                </ul>
-                <p style="margin-top: 15px; font-size: 14px;">
-                    <em>Note: We do not collect or store personal information beyond what is necessary for app functionality. 
-                    We do not track users across other apps or websites.</em>
-                </p>
-            </div>
-
-            <h2>After Account Deletion</h2>
-            <div class="note">
-                <p><strong>What happens after deletion:</strong></p>
-                <ul style="margin-left: 20px; margin-top: 10px;">
-                    <li>You will no longer be able to log in to the Ibtikar app</li>
-                    <li>All your data will be permanently removed from our systems</li>
-                    <li>You can create a new account at any time by logging in again</li>
-                    <li>Your Twitter/X account is not affected - only the connection to Ibtikar is removed</li>
-                </ul>
-            </div>
-
-            <div class="note" style="margin-top: 40px; text-align: center;">
-                <p><strong>Ibtikar App</strong></p>
-                <p>Empowering users with digital safety and social entrepreneurship</p>
-                <p style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
-                    For questions about this process, contact: <a href="mailto:ibtikarpal@gmail.com" style="color: #00A3A3;">ibtikarpal@gmail.com</a>
-                </p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    return HTMLResponse(content=html_content)
-
-
-@app.delete("/v1/account/delete")
-async def delete_account(
-    user_id: int = Query(..., description="User ID of the account to delete"),
-    confirm: bool = Query(False, description="Confirmation flag - must be True to proceed"),
-    db: Session = Depends(get_db),
-):
-    """
-    Delete a user account and all associated data.
-    
-    This endpoint deletes:
-    - User account record
-    - OAuth tokens (cascade delete)
-    - All predictions/analysis data (cascade delete)
-    
-    Args:
-        user_id: The ID of the user account to delete
-        confirm: Must be True to proceed with deletion (safety check)
-        
-    Returns:
-        JSON response confirming deletion
-    """
-    if not confirm:
-        raise HTTPException(
-            status_code=400,
-            detail="Deletion requires explicit confirmation. Set confirm=true in query parameters."
-        )
-    
-    # Find the user
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail=f"User with ID {user_id} not found")
-    
-    # Store user info for logging
-    user_handle = user.handle or f"user_{user_id}"
-    
-    try:
-        # Delete the user - cascade will handle tokens and predictions
-        # Due to cascade="all, delete-orphan" in the relationships,
-        # deleting the user will automatically delete:
-        # - All XToken records
-        # - All Prediction records
-        db.delete(user)
-        db.commit()
-        
-        print(f"✅ Account deleted successfully: user_id={user_id}, handle={user_handle}")
-        
-        return {
-            "success": True,
-            "message": f"Account {user_id} and all associated data have been deleted",
-            "deleted_user_id": user_id,
-            "deleted_at": datetime.utcnow().isoformat(),
-            "deleted_data": {
-                "user_account": True,
-                "oauth_tokens": True,
-                "predictions": True,
-                "analytics": True
-            }
-        }
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Error deleting account {user_id}: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error deleting account: {str(e)}"
-        )
-
-
-# ---------- Privacy Policy Endpoint ----------
-
-
-@app.get("/privacy-policy", response_class=HTMLResponse)
-async def privacy_policy_page():
-    """
-    Privacy Policy page for App Store and Play Store compliance.
-    This page explains how Ibtikar collects, uses, and protects user data.
-    """
-    html_content = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Privacy Policy - Ibtikar</title>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                background: linear-gradient(135deg, #F6DE55 0%, #00A3A3 50%, #000000 100%);
-                min-height: 100vh;
-                padding: 20px;
-                line-height: 1.8;
-            }
-            .container {
-                max-width: 900px;
-                margin: 0 auto;
-                background: white;
-                border-radius: 20px;
-                padding: 50px;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            }
-            h1 {
-                color: #000000;
-                font-size: 42px;
-                margin-bottom: 15px;
-                font-weight: 900;
-                text-align: center;
-            }
-            .app-name {
-                color: #00A3A3;
-                font-size: 24px;
-                margin-bottom: 40px;
-                font-weight: 700;
-                text-align: center;
-            }
-            .last-updated {
-                text-align: center;
-                color: #666;
-                font-size: 14px;
-                margin-bottom: 40px;
-                font-style: italic;
-            }
-            h2 {
-                color: #000000;
-                font-size: 28px;
-                margin-top: 40px;
-                margin-bottom: 20px;
-                font-weight: 700;
-                border-bottom: 3px solid #F6DE55;
-                padding-bottom: 10px;
-            }
-            h3 {
-                color: #00A3A3;
-                font-size: 20px;
-                margin-top: 25px;
-                margin-bottom: 15px;
-                font-weight: 600;
-            }
-            p {
-                margin: 15px 0;
-                font-size: 16px;
-                color: #333;
-            }
-            ul, ol {
-                margin: 15px 0;
-                margin-left: 30px;
-            }
-            li {
-                margin: 10px 0;
-                font-size: 16px;
-                color: #333;
-            }
-            .highlight {
-                background: #FFF3CD;
-                border-left: 5px solid #F6DE55;
-                padding: 20px;
-                margin: 25px 0;
-                border-radius: 5px;
-            }
-            .info-box {
-                background: #E7F3FF;
-                border-left: 5px solid #00A3A3;
-                padding: 20px;
-                margin: 25px 0;
-                border-radius: 5px;
-            }
-            .contact-box {
-                background: #000000;
-                color: white;
-                padding: 25px;
-                margin: 40px 0;
-                border-radius: 10px;
-                text-align: center;
-            }
-            .contact-box a {
-                color: #F6DE55;
-                text-decoration: none;
-                font-weight: 700;
-                font-size: 18px;
-            }
-            .contact-box a:hover {
-                text-decoration: underline;
-            }
-            .section {
-                margin: 30px 0;
-            }
-            strong {
-                color: #000000;
-                font-weight: 700;
-            }
-            a {
-                color: #00A3A3;
-                text-decoration: none;
-            }
-            a:hover {
-                text-decoration: underline;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>Privacy Policy</h1>
-            <p class="app-name">Ibtikar - AI-Powered Social Safety</p>
-            <p class="last-updated">Last Updated: """ + datetime.now().strftime("%B %d, %Y") + """</p>
-
-            <div class="highlight">
-                <p><strong>Ibtikar</strong> ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application.</p>
-            </div>
-
-            <div class="section">
-                <h2>1. Information We Collect</h2>
-                
-                <h3>1.1 Account Information</h3>
-                <p>When you log in to Ibtikar using Twitter/X OAuth:</p>
-                <ul>
-                    <li><strong>Twitter/X Profile Data</strong>: Your Twitter/X username, display name, and profile information</li>
-                    <li><strong>OAuth Tokens</strong>: Encrypted authentication tokens to access your Twitter/X account (stored securely using Fernet encryption)</li>
-                    <li><strong>User ID</strong>: A unique identifier assigned to your account</li>
-                </ul>
-
-                <h3>1.2 Content Analysis Data</h3>
-                <p>To provide toxicity analysis services, we collect and analyze:</p>
-                <ul>
-                    <li><strong>Social Media Posts</strong>: Posts from accounts you follow on Twitter/X</li>
-                    <li><strong>Analysis Results</strong>: Toxicity predictions and scores generated by our AI model</li>
-                    <li><strong>Metadata</strong>: Post IDs, author IDs, languages, and timestamps</li>
-                </ul>
-
-                <h3>1.3 Technical Information</h3>
-                <ul>
-                    <li><strong>Device Information</strong>: Basic device information necessary for app functionality</li>
-                    <li><strong>Usage Data</strong>: Information about how you interact with the app (anonymized)</li>
-                </ul>
-            </div>
-
-            <div class="section">
-                <h2>2. How We Use Your Information</h2>
-                <p>We use the information we collect to:</p>
-                <ul>
-                    <li>Authenticate your account via Twitter/X OAuth</li>
-                    <li>Fetch and analyze social media content from accounts you follow</li>
-                    <li>Provide toxicity analysis and safety recommendations</li>
-                    <li>Generate analytics and insights about content patterns</li>
-                    <li>Improve and maintain our services</li>
-                    <li>Respond to your requests and provide customer support</li>
-                </ul>
-            </div>
-
-            <div class="section">
-                <h2>3. Third-Party Services</h2>
-                
-                <h3>3.1 Twitter/X API</h3>
-                <div class="info-box">
-                    <p>Ibtikar integrates with <strong>Twitter/X API</strong> to:</p>
-                    <ul>
-                        <li>Authenticate your account via OAuth 2.0</li>
-                        <li>Fetch posts from accounts you follow</li>
-                        <li>Access your basic profile information</li>
-                    </ul>
-                    <p><strong>Your use of Twitter/X is subject to Twitter's Privacy Policy:</strong> <a href="https://twitter.com/privacy" target="_blank">https://twitter.com/privacy</a></p>
-                </div>
-
-                <h3>3.2 Hugging Face API</h3>
-                <div class="info-box">
-                    <p>We use <strong>Hugging Face</strong> services to:</p>
-                    <ul>
-                        <li>Run AI-powered toxicity analysis on social media content</li>
-                        <li>Classify content as safe, harmful, or unknown</li>
-                    </ul>
-                    <p><strong>Your use of our AI analysis is subject to Hugging Face's Terms:</strong> <a href="https://huggingface.co/terms" target="_blank">https://huggingface.co/terms</a></p>
-                </div>
-
-                <h3>3.3 Data Sharing</h3>
-                <p>We <strong>do not sell, trade, or rent</strong> your personal information to third parties. We only share data as necessary to provide our services:</p>
-                <ul>
-                    <li>Content is sent to Hugging Face API for AI analysis (content only, not your personal information)</li>
-                    <li>OAuth tokens are used to fetch data from Twitter/X API</li>
-                    <li>All data sharing is done securely via encrypted HTTPS connections</li>
-                </ul>
-            </div>
-
-            <div class="section">
-                <h2>4. Data Storage and Security</h2>
-                
-                <h3>4.1 Data Storage</h3>
-                <ul>
-                    <li>Your data is stored in secure databases</li>
-                    <li>OAuth tokens are encrypted using Fernet encryption before storage</li>
-                    <li>All data is stored on secure servers with appropriate access controls</li>
-                </ul>
-
-                <h3>4.2 Data Security</h3>
-                <ul>
-                    <li>All data transmission is encrypted using HTTPS/TLS</li>
-                    <li>OAuth tokens are encrypted at rest using industry-standard encryption</li>
-                    <li>We implement security measures to protect against unauthorized access</li>
-                    <li>Regular security reviews and updates are performed</li>
-                </ul>
-            </div>
-
-            <div class="section">
-                <h2>5. Data Retention</h2>
-                <ul>
-                    <li>We retain your data for as long as your account is active</li>
-                    <li>Analysis results and cached content are stored to provide historical insights</li>
-                    <li>When you delete your account, all associated data is permanently deleted within 30 days</li>
-                    <li>Some anonymized, aggregated data may be retained for analytics purposes (no personal identifiers)</li>
-                </ul>
-            </div>
-
-            <div class="section">
-                <h2>6. Your Rights and Choices</h2>
-                
-                <h3>6.1 Account Deletion</h3>
-                <p>You can request deletion of your account and all associated data at any time:</p>
-                <ul>
-                    <li>Visit: <a href="/delete-account">Delete Account Page</a></li>
-                    <li>Email us at: <a href="mailto:ibtikarpal@gmail.com">ibtikarpal@gmail.com</a></li>
-                    <li>Account deletion requests are processed within 30 days</li>
-                </ul>
-
-                <h3>6.2 Data Access</h3>
-                <p>You can request access to the data we have about you by contacting us at <a href="mailto:ibtikarpal@gmail.com">ibtikarpal@gmail.com</a></p>
-
-                <h3>6.3 Revoke Access</h3>
-                <p>You can revoke Ibtikar's access to your Twitter/X account at any time through your Twitter/X account settings.</p>
-            </div>
-
-            <div class="section">
-                <h2>7. Children's Privacy</h2>
-                <p>Ibtikar is not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe we have collected information from a child under 13, please contact us immediately.</p>
-            </div>
-
-            <div class="section">
-                <h2>8. International Data Transfers</h2>
-                <p>Your information may be transferred to and processed in countries other than your country of residence. These countries may have data protection laws that differ from your country. By using Ibtikar, you consent to the transfer of your information to these countries.</p>
-            </div>
-
-            <div class="section">
-                <h2>9. Changes to This Privacy Policy</h2>
-                <p>We may update this Privacy Policy from time to time. We will notify you of any changes by:</p>
-                <ul>
-                    <li>Posting the new Privacy Policy on this page</li>
-                    <li>Updating the "Last Updated" date at the top of this policy</li>
-                    <li>Notifying you through the app or via email for significant changes</li>
-                </ul>
-                <p>You are advised to review this Privacy Policy periodically for any changes.</p>
-            </div>
-
-            <div class="section">
-                <h2>10. Tracking and Analytics</h2>
-                <div class="info-box">
-                    <p><strong>Ibtikar does NOT:</strong></p>
-                    <ul>
-                        <li>Track users across other apps or websites</li>
-                        <li>Use tracking cookies or tracking technologies</li>
-                        <li>Share data with advertisers or data brokers</li>
-                        <li>Collect information for marketing purposes</li>
-                    </ul>
-                    <p>We only collect the minimum data necessary to provide our safety analysis services.</p>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2>11. Contact Us</h2>
-                <div class="contact-box">
-                    <p><strong>If you have questions about this Privacy Policy, please contact us:</strong></p>
-                    <p style="margin-top: 15px;">
-                        <strong>Email:</strong> <a href="mailto:ibtikarpal@gmail.com">ibtikarpal@gmail.com</a>
-                    </p>
-                    <p style="margin-top: 10px; font-size: 14px; opacity: 0.9;">
-                        We will respond to your inquiry within 48 hours.
-                    </p>
-                </div>
-            </div>
-
-            <div class="section" style="margin-top: 50px; padding-top: 30px; border-top: 2px solid #E0E0E0;">
-                <p style="text-align: center; color: #666; font-size: 14px;">
-                    <strong>Ibtikar App</strong><br>
-                    Empowering users with digital safety and social entrepreneurship<br>
-                    <span style="margin-top: 10px; display: block;">© """ + datetime.now().strftime("%Y") + """ Ibtikar. All rights reserved.</span>
-                </p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    return HTMLResponse(content=html_content)

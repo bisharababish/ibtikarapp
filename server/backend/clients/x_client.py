@@ -1,7 +1,7 @@
 import base64, hashlib, os
 from typing import Dict, Any
 import httpx
-from ..core.config import settings
+from backend.core.config import settings
 
 AUTH_URL = "https://twitter.com/i/oauth2/authorize"
 TOKEN_URL = "https://api.twitter.com/2/oauth2/token"
@@ -34,16 +34,33 @@ def build_auth_url(state: str, code_challenge: str) -> str:
 async def exchange_code_for_token(code: str, code_verifier: str) -> Dict[str, Any]:
     data = {
         "grant_type": "authorization_code",
-        "client_id": settings.X_CLIENT_ID,
         "code": code,
         "redirect_uri": str(settings.X_REDIRECT_URI),
         "code_verifier": code_verifier,
     }
+    
+    # Twitter OAuth 2.0 requires Basic Auth with client_id:client_secret
+    import base64
+    credentials = f"{settings.X_CLIENT_ID}:{settings.X_CLIENT_SECRET}"
+    encoded_credentials = base64.b64encode(credentials.encode()).decode()
+    
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": f"Basic {encoded_credentials}",
+    }
+    
+    print(f"🔐 Exchanging code for token with client_id: {settings.X_CLIENT_ID[:20]}...")
+    
     async with httpx.AsyncClient(timeout=20.0) as client:
         r = await client.post(
             TOKEN_URL,
             data=data,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            headers=headers,
         )
+        
+        if r.status_code != 200:
+            print(f"❌ Token exchange failed: Status {r.status_code}")
+            print(f"   Response: {r.text[:200]}")
+        
         r.raise_for_status()
         return r.json()
