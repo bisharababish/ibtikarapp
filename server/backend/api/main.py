@@ -1,8 +1,10 @@
 from datetime import datetime
 import time
+import os
+from pathlib import Path
 
 from fastapi import FastAPI, Depends, HTTPException, Query, Request
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 
@@ -213,6 +215,113 @@ def health():
         "service": "ibtikar-backend",
         "env": settings.ENV,
         "version": "0.2.0",
+    }
+
+
+# ---------- Static HTML pages for Play Console ----------
+
+@app.get("/privacy-policy.html")
+async def privacy_policy_html():
+    """Privacy Policy page for Google Play Console"""
+    # Try multiple possible locations (most likely first)
+    possible_files = [
+        # Relative to current file (most reliable)
+        Path(__file__).parent.parent.parent / "static" / "privacy-policy.html",
+        # From current working directory
+        Path(os.getcwd()) / "server" / "static" / "privacy-policy.html",
+        Path(os.getcwd()) / "static" / "privacy-policy.html",
+        # Absolute paths (for Render deployment)
+        Path("/opt/render/project/src/server/static/privacy-policy.html"),
+        Path("/home/expo/workingdir/build/server/static/privacy-policy.html"),
+    ]
+    
+    for file_path in possible_files:
+        if file_path.exists():
+            print(f"✅ Serving privacy-policy.html from: {file_path}")
+            # Read file content and return as HTML
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                return HTMLResponse(content=content)
+            except Exception as e:
+                print(f"❌ Error reading file: {e}")
+                return FileResponse(str(file_path), media_type="text/html")
+    
+    # Debug info
+    print(f"❌ Privacy policy not found. Tried: {[str(p) for p in possible_files]}")
+    print(f"   CWD: {os.getcwd()}, __file__: {__file__}")
+    raise HTTPException(status_code=404, detail=f"Privacy policy not found. CWD: {os.getcwd()}")
+
+
+@app.get("/delete-account.html")
+async def delete_account_html():
+    """Delete Account page for Google Play Console"""
+    # Try multiple possible locations (most likely first)
+    possible_files = [
+        # Relative to current file (most reliable)
+        Path(__file__).parent.parent.parent / "static" / "delete-account.html",
+        # From current working directory
+        Path(os.getcwd()) / "server" / "static" / "delete-account.html",
+        Path(os.getcwd()) / "static" / "delete-account.html",
+        # Absolute paths (for Render deployment)
+        Path("/opt/render/project/src/server/static/delete-account.html"),
+        Path("/home/expo/workingdir/build/server/static/delete-account.html"),
+    ]
+    
+    for file_path in possible_files:
+        if file_path.exists():
+            print(f"✅ Serving delete-account.html from: {file_path}")
+            # Read file content and return as HTML
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                return HTMLResponse(content=content)
+            except Exception as e:
+                print(f"❌ Error reading file: {e}")
+                return FileResponse(str(file_path), media_type="text/html")
+    
+    # Debug info
+    print(f"❌ Delete account page not found. Tried: {[str(p) for p in possible_files]}")
+    print(f"   CWD: {os.getcwd()}, __file__: {__file__}")
+    raise HTTPException(status_code=404, detail=f"Delete account page not found. CWD: {os.getcwd()}")
+
+
+@app.get("/privacy-policy")
+async def privacy_policy():
+    """Privacy Policy page (without .html extension)"""
+    return await privacy_policy_html()
+
+
+@app.get("/delete-account")
+async def delete_account():
+    """Delete Account page (without .html extension)"""
+    return await delete_account_html()
+
+
+@app.get("/debug/static-paths")
+async def debug_static_paths():
+    """Debug endpoint to check static file paths"""
+    static_dir = Path(__file__).parent.parent.parent / "static"
+    possible_files = {
+        "relative_to_file": str(static_dir / "privacy-policy.html"),
+        "cwd_server": str(Path(os.getcwd()) / "server" / "static" / "privacy-policy.html"),
+        "cwd_static": str(Path(os.getcwd()) / "static" / "privacy-policy.html"),
+    }
+    
+    results = {}
+    for name, path_str in possible_files.items():
+        path = Path(path_str)
+        results[name] = {
+            "path": path_str,
+            "exists": path.exists(),
+            "absolute": str(path.absolute()) if path.exists() else None,
+        }
+    
+    return {
+        "cwd": os.getcwd(),
+        "__file__": __file__,
+        "static_dir": str(static_dir),
+        "files": results,
     }
 
 
