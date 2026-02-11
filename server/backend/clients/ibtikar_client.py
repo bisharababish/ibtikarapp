@@ -137,17 +137,37 @@ async def analyze_texts(texts: List[str]) -> List[Dict]:
     is_hf = _is_hf_space(base)
     base_root: str | None = None
     if is_hf:
-        # Strip any path so we only have scheme+host (e.g. https://xxx.hf.space)
         base_root = base.split("/predict")[0].split("/api")[0].split("/run")[0].rstrip("/")
-        # Try /api/predict first (Gradio HTTP API), then /run/predict
+
+    # For HF Spaces: try Gradio client FIRST (HTTP API often 404 on HF; Gradio client works)
+    if is_hf and base_root:
+        space_name = _hf_space_url_to_name(base_root)
+        print(f"🔍 Trying Gradio client for {space_name} ({len(texts)} texts)...")
+        try:
+            import asyncio
+            out = await asyncio.to_thread(
+                _predict_via_gradio_client,
+                space_name,
+                texts,
+            )
+            if out and len(out) == len(texts):
+                print(f"✅ HF API OK (Gradio client): {len(out)} preds, first: label={out[0]['label']} score={out[0]['score']}")
+                return out
+            if out:
+                print(f"⚠️ Gradio client returned {len(out)} preds, need {len(texts)}")
+        except ImportError as e:
+            print(f"⚠️ gradio_client not installed: {e}. pip install gradio-client")
+        except Exception as e:
+            print(f"⚠️ Gradio client failed: {e}")
+        # Fall through to HTTP attempts
+
+    if is_hf and base_root:
         urls_to_try = [(base_root + path, {"texts": texts}) for path in HF_SPACE_PATHS]
-        # For /run/predict Gradio expects body {"data": [inputs]}
         urls_to_try[1] = (base_root + HF_SPACE_PATHS[1], {"data": [texts]})
     else:
         url = base + "/predict" if not base.endswith("/predict") else base
         urls_to_try = [(url, {"texts": texts})]
 
-    last_error: Exception | None = None
     for attempt in range(3):
         for url, body in urls_to_try:
             try:
@@ -169,21 +189,17 @@ async def analyze_texts(texts: List[str]) -> List[Dict]:
                     print(f"✅ HF API OK: {len(out)} preds, first: label={out[0]['label']} score={out[0]['score']}")
                     return out
             except httpx.TimeoutException:
-                last_error = httpx.TimeoutException()
                 print(f"⏱️ Timeout at {url}")
                 break
             except httpx.HTTPStatusError as e:
-                last_error = e
                 if e.response.status_code == 404:
                     continue
                 print(f"❌ HTTP {e.response.status_code} at {url}: {e}")
                 break
             except httpx.RequestError as e:
-                last_error = e
                 print(f"❌ Request error: {e}")
                 break
             except Exception as e:
-                last_error = e
                 print(f"❌ Error: {e}")
                 break
 
@@ -191,23 +207,5 @@ async def analyze_texts(texts: List[str]) -> List[Dict]:
             import asyncio
             await asyncio.sleep(5 * (attempt + 1))
 
-    # Fallback: use Gradio Python client (finds correct endpoint; works when HTTP API returns 404)
-    if is_hf and base_root:
-        space_name = _hf_space_url_to_name(base_root)
-        try:
-            import asyncio
-            out = await asyncio.to_thread(
-                _predict_via_gradio_client,
-                space_name,
-                texts,
-            )
-            if out:
-                print(f"✅ HF API OK (Gradio client): {len(out)} preds")
-                return out
-        except ImportError:
-            print("⚠️ gradio_client not installed; pip install gradio-client for fallback")
-        except Exception as e:
-            print(f"⚠️ Gradio client fallback failed: {e}")
-
-    print(f"❌ All HF attempts failed. Set IBTIKAR_URL to your Space base URL (e.g. https://YOUR-SPACE.hf.space) or full /api/predict URL.")
+    print(f"❌ All HF attempts failed. Set IBTIKAR_URL to your Space base URL or ensure gradio-client is installed.")
     return _stub_only_on_failure(texts)

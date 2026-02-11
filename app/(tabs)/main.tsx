@@ -387,10 +387,11 @@ export default function MainScreen() {
                 {items.map((p) => {
                   const isHarmful = (p.label || "").toLowerCase() === "harmful" || (p.label || "").toLowerCase() === "toxic";
                   const isSafe = (p.label || "").toLowerCase() === "safe";
+                  const isUnknown = !isHarmful && !isSafe;
 
                   const borderColor = isHarmful ? "#D90000" : isSafe ? "#38B000" : "#E5E5E5";
                   const bgColor = isHarmful ? "#FAFAFA" : isSafe ? "#FAFAFA" : "#FFFFFF";
-                  const labelColor = isHarmful ? "#D90000" : isSafe ? "#38B000" : "#333333";
+                  const labelColor = isHarmful ? "#D90000" : isSafe ? "#38B000" : "#666666";
                   const labelIcon = isHarmful ? "⚠️" : isSafe ? "✅" : "❓";
                   const labelText = isHarmful ? "HARMFUL" : isSafe ? "SAFE" : "UNKNOWN";
 
@@ -422,7 +423,7 @@ export default function MainScreen() {
                             </Text>
                           )}
                         </View>
-                        {p.score !== undefined && (
+                        {!isUnknown && p.score !== undefined && (
                           <Text style={{ color: labelColor, fontSize: 11, fontWeight: "700", marginLeft: 8 }}>
                             {(p.score * 100).toFixed(2)}%
                           </Text>
@@ -432,18 +433,20 @@ export default function MainScreen() {
                         {p.text}
                       </Text>
                       <View style={{ paddingTop: 8, borderTopWidth: 1, borderTopColor: "#E5E5E5" }}>
-                        {p.score !== undefined && (
-                          <>
-                            <View style={{ flexDirection: "row", gap: 8, marginBottom: 6 }}>
-                              <Text style={{ color: isSafe ? "#38B000" : "#333333", fontSize: 9 }}>
-                                Safe: {((1 - p.score) * 100).toFixed(2)}%
-                              </Text>
-                              <Text style={{ color: isHarmful ? "#D90000" : "#333333", fontSize: 9 }}>
-                                Harmful: {(p.score * 100).toFixed(2)}%
-                              </Text>
-                            </View>
-                          </>
-                        )}
+                        {isUnknown ? (
+                          <Text style={{ color: "#666666", fontSize: 10, marginBottom: 6 }}>
+                            Could not analyze (service unavailable)
+                          </Text>
+                        ) : p.score !== undefined ? (
+                          <View style={{ flexDirection: "row", gap: 8, marginBottom: 6 }}>
+                            <Text style={{ color: isSafe ? "#38B000" : "#333333", fontSize: 9 }}>
+                              Safe: {((1 - p.score) * 100).toFixed(2)}%
+                            </Text>
+                            <Text style={{ color: isHarmful ? "#D90000" : "#333333", fontSize: 9 }}>
+                              Harmful: {(p.score * 100).toFixed(2)}%
+                            </Text>
+                          </View>
+                        ) : null}
                         <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
                           {p.post_created_at && (
                             <Text style={{ color: "#333333", fontSize: 9 }}>
