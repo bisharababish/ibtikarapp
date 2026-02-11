@@ -5,6 +5,8 @@ from ..core.config import settings
 
 # When IBTIKAR_URL is not set, use this Space. Gradio on HF uses /api/predict (not bare /predict).
 DEFAULT_HF_SPACE_URL = "https://bisharababish-arabert-toxic-classifier.hf.space"
+# HF Space name for gradio_client (must match Space: Bisharababish/arabert-toxic-classifier)
+DEFAULT_HF_SPACE_NAME = "Bisharababish/arabert-toxic-classifier"
 # Try these in order: /api/predict (Gradio HTTP API), then /run/predict (Gradio internal)
 HF_SPACE_PATHS = ("/api/predict", "/run/predict")
 
@@ -17,6 +19,60 @@ def _stub_only_on_failure(texts: List[str]) -> List[Dict]:
 def _is_hf_space(base_url: str) -> bool:
     u = (base_url or "").lower()
     return "hf.space" in u or "huggingface.co" in u
+
+
+def _hf_space_url_to_name(base_url: str) -> str:
+    """Convert https://owner-spacename.hf.space -> owner/spacename for gradio_client."""
+    u = (base_url or "").strip()
+    if ".hf.space" in u:
+        try:
+            from urllib.parse import urlparse
+            host = urlparse(u).netloc
+            if host.endswith(".hf.space"):
+                name = host.replace(".hf.space", "").replace("-", "/", 1)
+                if "/" in name:
+                    return name
+        except Exception:
+            pass
+    return DEFAULT_HF_SPACE_NAME
+
+
+def _predict_via_gradio_client(space_name: str, texts: List[str]) -> List[Dict] | None:
+    """Call Space via gradio_client. API: predict(text=..., api_name="/predict"). Returns list of {label, score} or None."""
+    try:
+        from gradio_client import Client
+    except ImportError:
+        return None
+    out = []
+    try:
+        client = Client(space_name, verbose=False)
+        for text in texts:
+            # API docs: client.predict(text="...", api_name="/predict"); returns Prediction Json (dict or single value)
+            result = client.predict(text=text, api_name="/predict")
+            label, score = "unknown", 0.0
+            if isinstance(result, dict):
+                # Prediction Json: e.g. {"label": "LABEL_0", "score": 0.95} or similar
+                label = str(result.get("label", result.get("prediction", "")) or "")
+                score = float(result.get("score", result.get("confidence", 0.0)))
+                # Some models return probabilities per class
+                if "score" not in result and "LABEL_1" in result:
+                    score = float(result.get("LABEL_1", 0.0))
+                elif "score" not in result and "probabilities" in result:
+                    probs = result["probabilities"]
+                    if isinstance(probs, (list, tuple)) and len(probs) >= 2:
+                        score = float(probs[1])
+            elif isinstance(result, (list, tuple)) and len(result) >= 2:
+                label = str(result[0] or "")
+                try:
+                    score = float(result[1])
+                except (TypeError, ValueError):
+                    score = 0.0
+            elif isinstance(result, str):
+                label = result
+            out.append({"label": _api_label_to_ours(label, score), "score": score})
+        return out if len(out) == len(texts) else None
+    except Exception:
+        return None
 
 
 def _extract_preds(data: Any, expected_len: int) -> List[Dict] | None:
@@ -79,6 +135,7 @@ async def analyze_texts(texts: List[str]) -> List[Dict]:
         return _stub_only_on_failure(texts)
 
     is_hf = _is_hf_space(base)
+    base_root: str | None = None
     if is_hf:
         # Strip any path so we only have scheme+host (e.g. https://xxx.hf.space)
         base_root = base.split("/predict")[0].split("/api")[0].split("/run")[0].rstrip("/")
@@ -133,6 +190,24 @@ async def analyze_texts(texts: List[str]) -> List[Dict]:
         if attempt < 2:
             import asyncio
             await asyncio.sleep(5 * (attempt + 1))
+
+    # Fallback: use Gradio Python client (finds correct endpoint; works when HTTP API returns 404)
+    if is_hf and base_root:
+        space_name = _hf_space_url_to_name(base_root)
+        try:
+            import asyncio
+            out = await asyncio.to_thread(
+                _predict_via_gradio_client,
+                space_name,
+                texts,
+            )
+            if out:
+                print(f"✅ HF API OK (Gradio client): {len(out)} preds")
+                return out
+        except ImportError:
+            print("⚠️ gradio_client not installed; pip install gradio-client for fallback")
+        except Exception as e:
+            print(f"⚠️ Gradio client fallback failed: {e}")
 
     print(f"❌ All HF attempts failed. Set IBTIKAR_URL to your Space base URL (e.g. https://YOUR-SPACE.hf.space) or full /api/predict URL.")
     return _stub_only_on_failure(texts)
