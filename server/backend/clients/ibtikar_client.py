@@ -143,20 +143,25 @@ async def analyze_texts(texts: List[str]) -> List[Dict]:
 
     # For HF Spaces: try Gradio client FIRST (HTTP API often 404 on HF; Gradio client works)
     if is_hf and base_root:
-        space_name = _hf_space_url_to_name(base_root)
+        # Use exact name from API docs (Bisharababish with capital B) for our default Space
+        space_name = DEFAULT_HF_SPACE_NAME if "bisharababish-arabert-toxic-classifier" in (base_root or "") else _hf_space_url_to_name(base_root)
         print(f"🔍 Trying Gradio client for {space_name} ({len(texts)} texts)...")
         try:
             import asyncio
-            out = await asyncio.to_thread(
-                _predict_via_gradio_client,
-                space_name,
-                texts,
+            # Cold Space can take 90s+ to wake; give it time
+            out = await asyncio.wait_for(
+                asyncio.to_thread(_predict_via_gradio_client, space_name, texts),
+                timeout=120.0,
             )
             if out and len(out) == len(texts):
                 print(f"✅ HF API OK (Gradio client): {len(out)} preds, first: label={out[0]['label']} score={out[0]['score']}")
                 return out
             if out:
                 print(f"⚠️ Gradio client returned {len(out)} preds, need {len(texts)}")
+            else:
+                print(f"⚠️ Gradio client returned None (check Space {space_name} or logs above)")
+        except asyncio.TimeoutError:
+            print(f"❌ Gradio client timed out after 120s (Space may be cold or overloaded)")
         except ImportError as e:
             print(f"❌ gradio_client not installed: {e}. pip install gradio-client (or use root requirements.txt)")
         except Exception as e:
