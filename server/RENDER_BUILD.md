@@ -2,17 +2,15 @@
 
 If deployment logs show **gradio-client is not** in "Successfully installed", the HF toxicity API will fail.
 
-**Fix in Render dashboard:**
+**Fix in Render dashboard (do this once):**
 
-1. Open your **Web Service** → **Settings**.
-2. **Build Command:** use one of:
-   - `pip install -r requirements.txt && pip install gradio-client`  
-     (if Root Directory is `server`)
-   - `pip install -r requirements.txt && pip install gradio-client`  
-     (if Root Directory is repo root)
-3. Save and **Manual Deploy** → **Clear build cache & deploy**.
+1. Open your **Web Service** (ibtikar-backend) → **Settings**.
+2. **Build Command** → set to exactly:
+   ```bash
+   chmod +x build.sh && ./build.sh
+   ```
+   (This runs the repo’s `build.sh`, which installs from `server/requirements.txt` then runs `pip install gradio-client`.)
+3. Leave **Root Directory** as-is (blank or `.` for repo root).
+4. Save → **Manual Deploy** → **Clear build cache & deploy**.
 
-Or set **Root Directory** to `server` and **Build Command** to:
-`pip install -r requirements-render.txt`
-
-Then redeploy.
+After the next deploy, the build log should list **gradio-client** in "Successfully installed".
