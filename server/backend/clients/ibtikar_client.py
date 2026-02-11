@@ -153,10 +153,10 @@ async def analyze_texts(texts: List[str]) -> List[Dict]:
         print(f"🔍 Trying Gradio client for {space_name} ({len(texts)} texts)...")
         try:
             import asyncio
-            # Cold Space can take 90s+ to wake; give it time
+            # Cold Space / queue can be slow; give it plenty of time
             out = await asyncio.wait_for(
                 asyncio.to_thread(_predict_via_gradio_client, space_name, texts),
-                timeout=120.0,
+                timeout=300.0,
             )
             if out and len(out) == len(texts):
                 print(f"✅ HF API OK (Gradio client): {len(out)} preds, first: label={out[0]['label']} score={out[0]['score']}")
@@ -166,7 +166,7 @@ async def analyze_texts(texts: List[str]) -> List[Dict]:
             else:
                 print(f"⚠️ Gradio client returned None (check Space {space_name} or logs above)")
         except asyncio.TimeoutError:
-            print(f"❌ Gradio client timed out after 120s (Space may be cold or overloaded)")
+            print(f"❌ Gradio client timed out after 300s (Space may be cold or overloaded)")
         except ImportError as e:
             print(f"❌ gradio_client not installed: {e}. pip install gradio-client (or use root requirements.txt)")
         except Exception as e:
