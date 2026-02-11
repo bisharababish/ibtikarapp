@@ -41,20 +41,19 @@ def _predict_via_gradio_client(space_name: str, texts: List[str]) -> List[Dict] 
     """Call Space via gradio_client. API: predict(text=..., api_name="/predict"). Returns list of {label, score} or None."""
     try:
         from gradio_client import Client
-    except ImportError:
+    except ImportError as e:
+        print(f"❌ gradio_client ImportError: {e}. Install with: pip install gradio-client")
         return None
     out = []
     try:
-        client = Client(space_name, verbose=False)
-        for text in texts:
-            # API docs: client.predict(text="...", api_name="/predict"); returns Prediction Json (dict or single value)
+        # max_workers=1 to avoid overloading cold Space; first call can take 60s+ to wake
+        client = Client(space_name, verbose=False, max_workers=1)
+        for i, text in enumerate(texts):
             result = client.predict(text=text, api_name="/predict")
             label, score = "unknown", 0.0
             if isinstance(result, dict):
-                # Prediction Json: e.g. {"label": "LABEL_0", "score": 0.95} or similar
                 label = str(result.get("label", result.get("prediction", "")) or "")
                 score = float(result.get("score", result.get("confidence", 0.0)))
-                # Some models return probabilities per class
                 if "score" not in result and "LABEL_1" in result:
                     score = float(result.get("LABEL_1", 0.0))
                 elif "score" not in result and "probabilities" in result:
@@ -71,7 +70,10 @@ def _predict_via_gradio_client(space_name: str, texts: List[str]) -> List[Dict] 
                 label = result
             out.append({"label": _api_label_to_ours(label, score), "score": score})
         return out if len(out) == len(texts) else None
-    except Exception:
+    except Exception as e:
+        import traceback
+        print(f"❌ Gradio client error for {space_name}: {e}")
+        traceback.print_exc()
         return None
 
 
@@ -156,9 +158,11 @@ async def analyze_texts(texts: List[str]) -> List[Dict]:
             if out:
                 print(f"⚠️ Gradio client returned {len(out)} preds, need {len(texts)}")
         except ImportError as e:
-            print(f"⚠️ gradio_client not installed: {e}. pip install gradio-client")
+            print(f"❌ gradio_client not installed: {e}. pip install gradio-client (or use root requirements.txt)")
         except Exception as e:
-            print(f"⚠️ Gradio client failed: {e}")
+            import traceback
+            print(f"❌ Gradio client failed: {e}")
+            traceback.print_exc()
         # Fall through to HTTP attempts
 
     if is_hf and base_root:

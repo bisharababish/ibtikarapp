@@ -1,0 +1,2 @@
+# Backend deps (so Render can install from repo root). Includes gradio-client for HF Space.
+-r server/requirements.txt
