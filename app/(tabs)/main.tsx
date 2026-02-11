@@ -433,11 +433,7 @@ export default function MainScreen() {
                         {p.text}
                       </Text>
                       <View style={{ paddingTop: 8, borderTopWidth: 1, borderTopColor: "#E5E5E5" }}>
-                        {isUnknown ? (
-                          <Text style={{ color: "#666666", fontSize: 10, marginBottom: 6 }}>
-                            Could not analyze (service unavailable)
-                          </Text>
-                        ) : p.score !== undefined ? (
+                        {!isUnknown && p.score !== undefined ? (
                           <View style={{ flexDirection: "row", gap: 8, marginBottom: 6 }}>
                             <Text style={{ color: isSafe ? "#38B000" : "#333333", fontSize: 9 }}>
                               Safe: {((1 - p.score) * 100).toFixed(2)}%
