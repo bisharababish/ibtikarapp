@@ -60,6 +60,11 @@ def _predict_via_gradio_client(space_name: str, texts: List[str]) -> List[Dict] 
                     probs = result["probabilities"]
                     if isinstance(probs, (list, tuple)) and len(probs) >= 2:
                         score = float(probs[1])
+            elif isinstance(result, (list, tuple)) and len(result) == 1 and isinstance(result[0], dict):
+                # Space returns [{"label": "harmful"|"safe", "score": float}]
+                d = result[0]
+                label = str(d.get("label", "") or "")
+                score = float(d.get("score", 0.0))
             elif isinstance(result, (list, tuple)) and len(result) >= 2:
                 label = str(result[0] or "")
                 try:
